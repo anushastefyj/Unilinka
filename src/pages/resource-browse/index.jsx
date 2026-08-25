@@ -11,6 +11,7 @@ import ResourceDetailModal from './components/ResourceDetailModal';
 import FeaturedSection from './components/FeaturedSection';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { ACADEMIC_YEARS, SUBJECTS_BY_YEAR, getAllSubjects } from '../../config/curriculum';
 
 const ResourceBrowse = () => {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ const ResourceBrowse = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
+    academicYear: 'All Years',
     subject: 'all',
     fileTypes: [],
     academicLevels: [],
@@ -29,6 +31,7 @@ const ResourceBrowse = () => {
     verifiedOnly: false,
     featuredOnly: false
   });
+  
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedResource, setSelectedResource] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,6 +60,7 @@ const ResourceBrowse = () => {
           id: r.id,
           title: r.title,
           description: r.description || "No description provided.",
+          academicYear: r.academic_year || 'Unknown',
           subject: r.subject,
           fileType: r.file_type?.toUpperCase(),
           fileSize: "N/A", 
@@ -81,18 +85,7 @@ const ResourceBrowse = () => {
     fetchResources();
   }, []);
 
-  const subjects = [
-    { id: 1, name: 'All Subjects', icon: 'BookOpen', count: resources?.length, hasNew: false },
-    { id: 2, name: 'Computer Science', icon: 'Code', count: resources?.filter(r => r.subject === 'Computer Science')?.length, hasNew: true },
-    { id: 3, name: 'Mathematics', icon: 'Calculator', count: resources?.filter(r => r.subject === 'Mathematics')?.length, hasNew: false },
-    { id: 4, name: 'Physics', icon: 'Atom', count: resources?.filter(r => r.subject === 'Physics')?.length, hasNew: true },
-    { id: 5, name: 'Chemistry', icon: 'FlaskConical', count: resources?.filter(r => r.subject === 'Chemistry')?.length, hasNew: false },
-    { id: 6, name: 'Biology', icon: 'Microscope', count: resources?.filter(r => r.subject === 'Biology')?.length, hasNew: false },
-    { id: 7, name: 'English Literature', icon: 'BookText', count: resources?.filter(r => r.subject === 'English Literature')?.length, hasNew: false },
-    { id: 8, name: 'History', icon: 'Landmark', count: resources?.filter(r => r.subject === 'History')?.length, hasNew: false },
-    { id: 9, name: 'Economics', icon: 'TrendingUp', count: resources?.filter(r => r.subject === 'Economics')?.length, hasNew: false }
-  ];
-
+  // Filter resources based on all active filters
   const getFilteredResources = () => {
     let filtered = [...resources];
 
@@ -103,6 +96,10 @@ const ResourceBrowse = () => {
         resource?.description?.toLowerCase()?.includes(query) ||
         resource?.tags?.some(tag => tag?.toLowerCase()?.includes(query))
       );
+    }
+
+    if (filters.academicYear && filters.academicYear !== 'All Years') {
+      filtered = filtered.filter(resource => resource.academicYear === filters.academicYear);
     }
 
     if (filters?.subject && filters?.subject !== 'all') {
@@ -180,6 +177,7 @@ const ResourceBrowse = () => {
 
   const handleClearFilters = () => {
     setFilters({
+      academicYear: 'All Years',
       subject: 'all',
       fileTypes: [],
       academicLevels: [],
@@ -190,9 +188,31 @@ const ResourceBrowse = () => {
     setSearchQuery('');
   };
 
+  const handleYearChange = (yearValue) => {
+    // When year changes, reset the selected subject since subjects are year-specific
+    setFilters({ ...filters, academicYear: yearValue, subject: 'all' });
+  };
+
   const handleSubjectChange = (subjectName) => {
     setFilters({ ...filters, subject: subjectName === 'All Subjects' ? 'all' : subjectName });
   };
+
+  // Generate subject list based on selected Academic Year
+  const currentSubjects = filters.academicYear === 'All Years' 
+    ? getAllSubjects()
+    : SUBJECTS_BY_YEAR[filters.academicYear] || [];
+  
+  // Format subjects for sidebar
+  const sidebarSubjects = [
+    { id: 'all', name: 'All Subjects', icon: 'BookOpen', count: filteredResources.length, hasNew: false },
+    ...currentSubjects.map((subjectName, idx) => ({
+      id: idx.toString(),
+      name: subjectName,
+      icon: 'FileText',
+      count: resources.filter(r => r.subject === subjectName && (filters.academicYear === 'All Years' || r.academicYear === filters.academicYear)).length,
+      hasNew: false
+    }))
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -203,16 +223,43 @@ const ResourceBrowse = () => {
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
               Browse Academic Resources
             </h1>
-            <p className="text-base md:text-lg text-muted-foreground max-w-3xl">
-              Discover verified study materials shared by students and faculty. Access quality educational content across multiple subjects and formats.
+            <p className="text-base md:text-lg text-muted-foreground max-w-3xl mb-8">
+              Discover verified study materials spanning across your AI & Data Science engineering curriculum.
             </p>
+            
+            {/* Top Cards for Academic Years */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {ACADEMIC_YEARS.map(year => {
+                const isSelected = filters.academicYear === year.value;
+                const count = year.value === 'All Years' 
+                  ? resources.length 
+                  : resources.filter(r => r.academicYear === year.value).length;
+                  
+                return (
+                  <button
+                    key={year.id}
+                    onClick={() => handleYearChange(year.value)}
+                    className={`p-4 rounded-2xl border text-left transition-all hover:-translate-y-1 ${
+                      isSelected 
+                        ? 'bg-primary border-primary text-white shadow-md' 
+                        : 'bg-white border-border hover:border-primary/50 text-foreground'
+                    }`}
+                  >
+                    <h3 className="font-bold text-lg mb-1">{year.label}</h3>
+                    <p className={`text-sm font-medium ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                      {count} {count === 1 ? 'Resource' : 'Resources'}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8">
           <div className="flex flex-col lg:flex-row gap-6">
             <SubjectSidebar
-              subjects={subjects}
+              subjects={sidebarSubjects}
               activeSubject={filters?.subject === 'all' ? 'All Subjects' : filters?.subject}
               onSubjectChange={handleSubjectChange}
             />
@@ -239,7 +286,7 @@ const ResourceBrowse = () => {
                   </Button>
                 </div>
 
-                {(searchQuery || filters?.subject !== 'all' || filters?.fileTypes?.length > 0 || 
+                {(searchQuery || filters?.subject !== 'all' || filters?.academicYear !== 'All Years' || filters?.fileTypes?.length > 0 || 
                   filters?.academicLevels?.length > 0 || filters?.verifiedOnly || filters?.featuredOnly) && (
                   <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border">
                     <span className="text-sm text-muted-foreground">Active filters:</span>
@@ -248,6 +295,14 @@ const ResourceBrowse = () => {
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-xs">
                           Search: {searchQuery}
                           <button onClick={() => setSearchQuery('')}>
+                            <Icon name="X" size={14} />
+                          </button>
+                        </span>
+                      )}
+                      {filters?.academicYear !== 'All Years' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-xs">
+                          {filters?.academicYear}
+                          <button onClick={() => handleYearChange('All Years')}>
                             <Icon name="X" size={14} />
                           </button>
                         </span>
@@ -283,7 +338,7 @@ const ResourceBrowse = () => {
 
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl md:text-2xl font-semibold text-foreground">
-                  All Resources
+                  {filters.academicYear === 'All Years' ? 'All Resources' : `${filters.academicYear} Resources`}
                   <span className="ml-2 text-base text-muted-foreground">
                     ({filteredResources?.length})
                   </span>
