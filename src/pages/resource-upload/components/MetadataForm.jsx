@@ -1,20 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
+import { ACADEMIC_YEARS, SUBJECTS_BY_YEAR } from '../../../config/curriculum';
 
 const MetadataForm = ({ formData, onChange, errors }) => {
-  const subjectOptions = [
-    { value: 'mathematics', label: 'Mathematics' },
-    { value: 'physics', label: 'Physics' },
-    { value: 'chemistry', label: 'Chemistry' },
-    { value: 'biology', label: 'Biology' },
-    { value: 'computer-science', label: 'Computer Science' },
-    { value: 'engineering', label: 'Engineering' },
-    { value: 'literature', label: 'Literature' },
-    { value: 'history', label: 'History' },
-    { value: 'economics', label: 'Economics' },
-    { value: 'business', label: 'Business Administration' }
-  ];
+
+  const academicYearOptions = ACADEMIC_YEARS.filter(y => y.id !== 'all').map(y => ({
+    value: y.value,
+    label: y.label
+  }));
+
+  const subjectOptions = useMemo(() => {
+    if (!formData.academicYear) return [];
+    const subjects = SUBJECTS_BY_YEAR[formData.academicYear] || [];
+    return subjects.map(s => ({ value: s, label: s }));
+  }, [formData.academicYear]);
 
   const academicLevelOptions = [
     { value: 'undergraduate-year1', label: 'Undergraduate - Year 1' },
@@ -40,16 +40,31 @@ const MetadataForm = ({ formData, onChange, errors }) => {
         error={errors?.title}
         required
       />
-      <Select
-        label="Subject Category"
-        placeholder="Select subject"
-        options={subjectOptions}
-        value={formData?.subject}
-        onChange={(value) => handleChange('subject', value)}
-        error={errors?.subject}
-        required
-        searchable
-      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <Select
+          label="Academic Year"
+          placeholder="Select academic year"
+          options={academicYearOptions}
+          value={formData?.academicYear}
+          onChange={(value) => handleChange('academicYear', value)}
+          error={errors?.academicYear}
+          required
+        />
+
+        <Select
+          label="Subject Category"
+          placeholder={formData.academicYear ? "Select subject" : "Select an academic year first"}
+          options={subjectOptions}
+          value={formData?.subject}
+          onChange={(value) => handleChange('subject', value)}
+          error={errors?.subject}
+          required
+          searchable
+          disabled={!formData.academicYear}
+        />
+      </div>
+
       <div>
         <label className="block text-sm font-medium text-[var(--color-foreground)] mb-2">
           Description <span className="text-[var(--color-error)]">*</span>
@@ -65,24 +80,27 @@ const MetadataForm = ({ formData, onChange, errors }) => {
           <p className="mt-1 text-sm text-[var(--color-error)]">{errors?.description}</p>
         )}
       </div>
-      <Select
-        label="Academic Level"
-        placeholder="Select academic level"
-        options={academicLevelOptions}
-        value={formData?.academicLevel}
-        onChange={(value) => handleChange('academicLevel', value)}
-        error={errors?.academicLevel}
-        required
-      />
-      <Input
-        label="Course Tags"
-        type="text"
-        placeholder="Enter tags separated by commas (e.g., calculus, derivatives, integration)"
-        value={formData?.tags}
-        onChange={(e) => handleChange('tags', e?.target?.value)}
-        description="Add relevant keywords to help others find your resource"
-        error={errors?.tags}
-      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <Select
+          label="Academic Level"
+          placeholder="Select academic level"
+          options={academicLevelOptions}
+          value={formData?.academicLevel}
+          onChange={(value) => handleChange('academicLevel', value)}
+          error={errors?.academicLevel}
+          required
+        />
+        <Input
+          label="Course Tags"
+          type="text"
+          placeholder="Enter tags (e.g., calculus, derivatives)"
+          value={formData?.tags}
+          onChange={(e) => handleChange('tags', e?.target?.value)}
+          description="Add relevant keywords to help others find your resource"
+          error={errors?.tags}
+        />
+      </div>
     </div>
   );
 };

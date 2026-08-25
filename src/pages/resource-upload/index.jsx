@@ -20,6 +20,7 @@ const ResourceUpload = () => {
   const [metadata, setMetadata] = useState({
     title: '',
     description: '',
+    academicYear: '',
     subject: '',
     academicLevel: '',
     tags: []
@@ -51,7 +52,13 @@ const ResourceUpload = () => {
   };
 
   const handleMetadataChange = (newMetadata) => {
-    setMetadata(newMetadata);
+    setMetadata(prev => {
+      // If academicYear changes, reset the subject
+      if (prev.academicYear !== newMetadata.academicYear) {
+        return { ...newMetadata, subject: '' };
+      }
+      return newMetadata;
+    });
   };
 
   const handleRemoveFile = (index) => {
@@ -91,6 +98,7 @@ const ResourceUpload = () => {
           .insert({
             title: metadata.title,
             description: metadata.description,
+            academic_year: metadata.academicYear,
             subject: metadata.subject,
             uploader_id: userData?.id,
             file_url: publicUrl,
@@ -117,6 +125,7 @@ const ResourceUpload = () => {
     setMetadata({
       title: '',
       description: '',
+      academicYear: '',
       subject: '',
       academicLevel: '',
       tags: []
@@ -227,6 +236,7 @@ const ResourceUpload = () => {
                           setMetadata({
                             title: '',
                             description: '',
+                            academicYear: '',
                             subject: '',
                             academicLevel: '',
                             tags: []
