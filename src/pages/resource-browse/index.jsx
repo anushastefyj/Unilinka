@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import MainNavigation from '../../components/ui/MainNavigation';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
@@ -21,9 +21,14 @@ const ResourceBrowse = () => {
   const [resources, setResources] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  const location = useLocation();
+  const initialAcademicYear = location.state?.selectedSubject && ACADEMIC_YEARS.find(y => y.value === location.state.selectedSubject)
+    ? location.state.selectedSubject
+    : 'All Years';
+    
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
-    academicYear: 'All Years',
+    academicYear: initialAcademicYear,
     subject: 'all',
     fileTypes: [],
     academicLevels: [],

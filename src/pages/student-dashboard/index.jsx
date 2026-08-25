@@ -125,7 +125,7 @@ const StudentDashboard = () => {
   ];
 
   const subjectCategories = ACADEMIC_YEARS.filter(y => y.id !== 'all').map((year, idx) => ({
-    id: year.id,
+    id: year.value,
     name: year.label,
     description: `Curriculum and resources for ${year.label}`,
     icon: idx === 0 ? 'BookOpen' : idx === 1 ? 'Monitor' : idx === 2 ? 'Database' : 'Cpu',

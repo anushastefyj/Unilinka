@@ -20,7 +20,11 @@ const SubjectCategoryCard = ({ subject }) => {
             {subject?.name}
           </h3>
           <div className="bg-primary/10 inline-flex items-center rounded-full px-3 py-1 mt-1">
-            <span className="text-xs font-bold text-primary">{subject?.resourceCount} resources</span>
+            <span className="text-xs font-bold text-primary">
+              {typeof subject?.resourceCount === 'number' 
+                ? `${subject?.resourceCount} resources` 
+                : subject?.resourceCount}
+            </span>
           </div>
         </div>
       </div>
