@@ -1,8 +1,6 @@
 import React from 'react';
 import Icon from '../../../components/AppIcon';
-
 import StatusIndicator from '../../../components/ui/StatusIndicator';
-import Button from '../../../components/ui/Button';
 
 const RecentUploadCard = ({ upload, onViewFeedback }) => {
   const getFileIcon = (type) => {
@@ -23,57 +21,44 @@ const RecentUploadCard = ({ upload, onViewFeedback }) => {
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 md:p-5 shadow-academic transition-academic hover:shadow-academic-md">
-      <div className="flex items-start gap-3 md:gap-4 mb-3 md:mb-4">
-        <div className="bg-primary/10 rounded-lg p-2 md:p-3 flex-shrink-0">
-          <Icon name={getFileIcon(upload?.fileType)} size={20} className="text-primary md:w-6 md:h-6" />
+    <div className="bg-white border border-border rounded-3xl p-5 shadow-sm transition-all hover:shadow-md">
+      <div className="flex items-center gap-4">
+        <div className="bg-primary/10 rounded-2xl p-3 flex-shrink-0">
+          <Icon name={getFileIcon(upload?.fileType)} size={24} className="text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm md:text-base lg:text-lg font-semibold text-foreground mb-1 line-clamp-1">
+          <h3 className="text-base font-bold text-foreground mb-1 truncate">
             {upload?.title}
           </h3>
-          <p className="text-xs md:text-sm text-muted-foreground caption mb-2">
-            {upload?.subject} • {formatDate(upload?.uploadDate)}
-          </p>
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <span className="bg-muted px-2 py-0.5 rounded-full">{upload?.fileType || 'DOC'}</span>
+            <span>•</span>
+            <span>{formatDate(upload?.uploadDate)}</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {upload?.status === 'approved' && upload?.downloads > 0 && (
+            <div className="hidden sm:flex items-center gap-1 text-xs font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
+              <Icon name="Download" size={14} />
+              <span>{upload?.downloads}</span>
+            </div>
+          )}
           <StatusIndicator status={upload?.status} size="small" />
         </div>
       </div>
+      
       {upload?.status === 'rejected' && upload?.feedback && (
-        <div className="bg-error/10 border border-error/20 rounded-lg p-3 mb-3">
-          <p className="text-xs md:text-sm text-error line-clamp-2">{upload?.feedback}</p>
-        </div>
-      )}
-      {upload?.status === 'approved' && upload?.downloads > 0 && (
-        <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mb-3">
-          <Icon name="Download" size={14} className="md:w-4 md:h-4" />
-          <span className="data-text">{upload?.downloads} downloads</span>
-        </div>
-      )}
-      <div className="flex items-center gap-2">
-        {upload?.status === 'rejected' && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            iconName="MessageSquare" 
-            iconPosition="left"
+        <div className="mt-4 bg-error/10 border border-error/20 rounded-xl p-3 flex items-start gap-3">
+          <p className="text-sm text-error flex-1">{upload?.feedback}</p>
+          <button 
             onClick={() => onViewFeedback(upload)}
-            className="flex-1"
+            className="text-xs font-bold text-error hover:underline whitespace-nowrap"
           >
-            View Feedback
-          </Button>
-        )}
-        {upload?.status === 'approved' && (
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            iconName="Eye" 
-            iconPosition="left"
-            className="flex-1"
-          >
-            View Resource
-          </Button>
-        )}
-      </div>
+            Fix Issues
+          </button>
+        </div>
+      )}
     </div>
   );
 };

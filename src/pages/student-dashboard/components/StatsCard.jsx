@@ -1,24 +1,32 @@
 import React from 'react';
 import Icon from '../../../components/AppIcon';
 
-const StatsCard = ({ icon, label, value, trend, trendValue, iconBgColor = 'bg-blue-100 dark:bg-blue-900' }) => {
+const StatsCard = ({ icon, label, value, trend, trendValue }) => {
+  // Determine if it's the "purple" highlighted card based on the label, or just keep them all clean
+  const isPrimary = label.toLowerCase().includes('download');
+
   return (
-    <div className="bg-card border border-border rounded-xl p-4 md:p-6 shadow-academic transition-academic hover:shadow-academic-md">
-      <div className="flex items-start justify-between mb-3 md:mb-4">
-        <div className={`${iconBgColor} rounded-lg p-2 md:p-3`}>
-          <Icon name={icon} size={20} className="text-primary md:w-6 md:h-6" />
+    <div className={`
+      relative overflow-hidden border rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1
+      ${isPrimary ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30' : 'bg-white border-border text-foreground shadow-sm'}
+    `}>
+      <div className="flex items-center justify-between mb-4">
+        <div className={`p-4 rounded-2xl ${isPrimary ? 'bg-white/20' : 'bg-primary/10'}`}>
+          <Icon name={icon} size={28} className={isPrimary ? 'text-white' : 'text-primary'} />
         </div>
-        {trend && (
-          <div className={`flex items-center gap-1 text-xs md:text-sm font-medium ${trend === 'up' ? 'text-success' : 'text-error'}`}>
-            <Icon name={trend === 'up' ? 'TrendingUp' : 'TrendingDown'} size={14} className="md:w-4 md:h-4" />
-            <span>{trendValue}</span>
-          </div>
-        )}
       </div>
-      <div className="space-y-1">
-        <p className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground data-text">{value}</p>
-        <p className="text-xs md:text-sm text-muted-foreground caption">{label}</p>
+      
+      <div className="space-y-1 relative z-10">
+        <p className={`text-4xl font-black ${isPrimary ? 'text-white' : 'text-foreground'}`}>{value}</p>
+        <p className={`text-sm font-medium ${isPrimary ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{label}</p>
       </div>
+
+      {/* Decorative Icon Background */}
+      <Icon 
+        name={icon} 
+        size={120} 
+        className={`absolute -right-4 -bottom-8 opacity-5 pointer-events-none ${isPrimary ? 'text-white' : 'text-primary'}`} 
+      />
     </div>
   );
 };
