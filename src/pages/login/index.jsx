@@ -5,36 +5,36 @@ import LoginHeader from './components/LoginHeader';
 import LoginForm from './components/LoginForm';
 import TrustSignals from './components/TrustSignals';
 import Icon from '../../components/AppIcon';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [successMessage, setSuccessMessage] = useState(null);
+  const { isAuthenticated, userData, loading } = useAuth();
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const userRole = localStorage.getItem('userRole');
-
-    if (token && userRole) {
+    // If authenticated and user data is loaded, redirect
+    if (isAuthenticated && userData && !loading) {
       const dashboardRoutes = {
         student: '/student-dashboard',
         faculty: '/faculty-dashboard',
         admin: '/faculty-dashboard'
       };
-      navigate(dashboardRoutes?.[userRole] || '/student-dashboard');
+      navigate(dashboardRoutes[userData.role] || '/student-dashboard');
     }
 
     // Check for registration success message
     if (location.state?.registrationSuccess && location.state?.message) {
       setSuccessMessage(location.state.message);
-      // Pre-fill email if provided
-      if (location.state.email) {
-        // This will be handled in LoginForm
-      }
       // Clear the state to prevent showing message on refresh
       window.history.replaceState({}, document.title);
     }
-  }, [navigate, location]);
+  }, [navigate, location, isAuthenticated, userData, loading]);
+
+  if (isAuthenticated && loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <>

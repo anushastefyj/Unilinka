@@ -1,25 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AuthenticationGuard = ({ children, requiredRoles = [] }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const [userRole, setUserRole] = useState(null);
+  const { isAuthenticated, userData, loading } = useAuth();
   const location = useLocation();
 
-  useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const role = localStorage.getItem('userRole');
-
-    if (token) {
-      setIsAuthenticated(true);
-      setUserRole(role);
-    } else {
-      setIsAuthenticated(false);
-      setUserRole(null);
-    }
-  }, []);
-
-  if (isAuthenticated === null) {
+  if (loading) {
     return (
       <div style={{
         display: 'flex',
@@ -44,7 +31,9 @@ const AuthenticationGuard = ({ children, requiredRoles = [] }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requiredRoles?.length > 0 && !requiredRoles?.includes(userRole)) {
+  const userRole = userData?.role;
+
+  if (requiredRoles?.length > 0 && (!userRole || !requiredRoles.includes(userRole))) {
     const redirectPath = userRole === 'student' ? '/student-dashboard' : '/faculty-dashboard';
     return <Navigate to={redirectPath} replace />;
   }

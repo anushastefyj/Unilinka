@@ -9,11 +9,13 @@ import FilePreviewList from './components/FilePreviewList';
 import MetadataForm from './components/MetadataForm';
 import GuidelinesPanel from './components/GuidelinesPanel';
 import SubmissionConfirmation from './components/SubmissionConfirmation';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 const ResourceUpload = () => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const { isAuthenticated, userData } = useAuth();
+  const userRole = userData?.role;
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [metadata, setMetadata] = useState({
     title: '',
@@ -24,18 +26,14 @@ const ResourceUpload = () => {
   });
   const [currentStep, setCurrentStep] = useState(1);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const role = localStorage.getItem('userRole');
-    
-    if (token) {
-      setIsAuthenticated(true);
-      setUserRole(role);
-    } else {
+    if (!isAuthenticated) {
       navigate('/login');
     }
-  }, [navigate]);
+  }, [navigate, isAuthenticated]);
 
   const handleFilesUploaded = (files) => {
     // Convert File objects to a format with IDs
@@ -60,18 +58,60 @@ const ResourceUpload = () => {
     setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (uploadedFiles.length === 0) {
       return;
     }
-    setShowConfirmation(true);
-    setCurrentStep(3);
+    
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      for (const fileObj of uploadedFiles) {
+        const file = fileObj.file;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${userData?.id || 'unknown'}/${fileName}`;
+
+        // Upload to Storage
+        const { error: uploadError } = await supabase.storage
+          .from('resources')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('resources')
+          .getPublicUrl(filePath);
+
+        // Insert into database
+        const { error: dbError } = await supabase
+          .from('resources')
+          .insert({
+            title: metadata.title,
+            description: metadata.description,
+            subject: metadata.subject,
+            uploader_id: userData?.id,
+            file_url: publicUrl,
+            file_type: file.type || fileExt,
+            status: 'pending'
+          });
+
+        if (dbError) throw dbError;
+      }
+      
+      setIsUploading(false);
+      setShowConfirmation(true);
+      setCurrentStep(3);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError(error.message || 'An error occurred during upload.');
+      setIsUploading(false);
+    }
   };
 
   const handleConfirmSubmission = () => {
-    // Here you would typically send the data to your backend API
-    console.log('Submitting:', { files: uploadedFiles, metadata });
-    
     // Reset form after submission
     setUploadedFiles([]);
     setMetadata({
@@ -84,7 +124,6 @@ const ResourceUpload = () => {
     setCurrentStep(1);
     setShowConfirmation(false);
     
-    // Navigate to dashboard or show success message
     navigate('/student-dashboard');
   };
 
@@ -172,10 +211,17 @@ const ResourceUpload = () => {
                         onRemove={handleRemoveFile}
                       />
                     </div>
+                    
+                    {uploadError && (
+                      <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-4">
+                        {uploadError}
+                      </div>
+                    )}
 
                     <div className="flex justify-end gap-4">
                       <Button
                         variant="outline"
+                        disabled={isUploading}
                         onClick={() => {
                           setUploadedFiles([]);
                           setMetadata({
@@ -195,9 +241,10 @@ const ResourceUpload = () => {
                         iconName="Upload"
                         iconPosition="left"
                         onClick={handleSubmit}
-                        disabled={!metadata.title || !metadata.subject}
+                        disabled={!metadata.title || !metadata.subject || isUploading}
+                        loading={isUploading}
                       >
-                        Submit Resource
+                        {isUploading ? 'Uploading...' : 'Submit Resource'}
                       </Button>
                     </div>
                   </>

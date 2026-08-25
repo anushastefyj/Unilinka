@@ -4,25 +4,19 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import Icon from '../../../components/AppIcon';
-import { signIn } from '../../../lib/firebaseAuth';
-import { getUser, createUser } from '../../../lib/firebaseDb';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const LoginForm = ({ initialEmail = '' }) => {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  
   const [formData, setFormData] = useState({
     email: initialEmail || '',
     password: '',
-    role: 'student',
     rememberMe: false
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-
-  const mockCredentials = {
-    student: { email: 'student@learnshare.edu', password: 'Student@123' },
-    faculty: { email: 'faculty@learnshare.edu', password: 'Faculty@456' },
-    admin: { email: 'admin@learnshare.edu', password: 'Admin@789' }
-  };
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,8 +34,6 @@ const LoginForm = ({ initialEmail = '' }) => {
 
     if (!formData?.password?.trim()) {
       newErrors.password = 'Password is required';
-    } else if (formData?.password?.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
     }
 
     setErrors(newErrors);
@@ -62,13 +54,6 @@ const LoginForm = ({ initialEmail = '' }) => {
     }
   };
 
-  const handleRoleChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      role: e?.target?.value
-    }));
-  };
-
   const handleRememberMeChange = (e) => {
     setFormData(prev => ({
       ...prev,
@@ -87,50 +72,18 @@ const LoginForm = ({ initialEmail = '' }) => {
     setErrors({});
 
     try {
-      // Sign in with Firebase
-      const result = await signIn(formData.email, formData.password);
+      const { data, error } = await login(formData.email, formData.password);
       
-      if (result.success) {
-        const user = result.user;
-        
-        // Get or create user data in Firestore
-        let userDataResult = await getUser(user.uid);
-        
-        if (!userDataResult.success) {
-          // Create user document if it doesn't exist
-          await createUser(user.uid, {
-            email: user.email,
-            displayName: user.displayName || '',
-            role: formData.role || 'student',
-            createdAt: new Date().toISOString()
-          });
-          userDataResult = await getUser(user.uid);
-        }
-
-        const userRole = userDataResult.data?.role || formData.role || 'student';
-        
-        // Store in localStorage for backward compatibility
-        localStorage.setItem('authToken', user.uid);
-        localStorage.setItem('userRole', userRole);
-        localStorage.setItem('userEmail', user.email);
-
+      if (error) {
+        setErrors({
+          submit: error.message || 'Invalid email or password. Please try again.'
+        });
+        setIsLoading(false);
+      } else if (data?.user) {
         if (formData?.rememberMe) {
           localStorage.setItem('rememberedEmail', formData?.email);
         }
-
-        const dashboardRoutes = {
-          student: '/student-dashboard',
-          faculty: '/faculty-dashboard',
-          admin: '/faculty-dashboard'
-        };
-
-        navigate(dashboardRoutes?.[userRole] || '/student-dashboard');
-      } else {
-        // Show user-friendly error message
-        setErrors({
-          submit: result.error || 'Invalid email or password. Please try again.'
-        });
-        setIsLoading(false);
+        // Redirection is handled by the useEffect in Login/index.jsx
       }
     } catch (error) {
       setErrors({
@@ -168,63 +121,7 @@ const LoginForm = ({ initialEmail = '' }) => {
           disabled={isLoading}
         />
       </div>
-      <div className="mb-4 md:mb-5 lg:mb-6">
-        <label className="block text-sm font-medium mb-3" style={{ color: 'var(--color-foreground)' }}>
-          Select Role
-        </label>
-        <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-          <label className="flex items-center gap-2 cursor-pointer p-3 rounded-lg border transition-all" style={{
-            borderColor: formData?.role === 'student' ? 'var(--color-primary)' : 'var(--color-border)',
-            background: formData?.role === 'student' ? 'rgba(30, 64, 175, 0.05)' : 'transparent'
-          }}>
-            <input
-              type="radio"
-              name="role"
-              value="student"
-              checked={formData?.role === 'student'}
-              onChange={handleRoleChange}
-              disabled={isLoading}
-              className="w-4 h-4"
-              style={{ accentColor: 'var(--color-primary)' }}
-            />
-            <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Student</span>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer p-3 rounded-lg border transition-all" style={{
-            borderColor: formData?.role === 'faculty' ? 'var(--color-primary)' : 'var(--color-border)',
-            background: formData?.role === 'faculty' ? 'rgba(30, 64, 175, 0.05)' : 'transparent'
-          }}>
-            <input
-              type="radio"
-              name="role"
-              value="faculty"
-              checked={formData?.role === 'faculty'}
-              onChange={handleRoleChange}
-              disabled={isLoading}
-              className="w-4 h-4"
-              style={{ accentColor: 'var(--color-primary)' }}
-            />
-            <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Faculty</span>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer p-3 rounded-lg border transition-all" style={{
-            borderColor: formData?.role === 'admin' ? 'var(--color-primary)' : 'var(--color-border)',
-            background: formData?.role === 'admin' ? 'rgba(30, 64, 175, 0.05)' : 'transparent'
-          }}>
-            <input
-              type="radio"
-              name="role"
-              value="admin"
-              checked={formData?.role === 'admin'}
-              onChange={handleRoleChange}
-              disabled={isLoading}
-              className="w-4 h-4"
-              style={{ accentColor: 'var(--color-primary)' }}
-            />
-            <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>Admin</span>
-          </label>
-        </div>
-      </div>
+      
       <div className="flex items-center justify-between mb-5 md:mb-6 lg:mb-7">
         <Checkbox
           label="Remember me"

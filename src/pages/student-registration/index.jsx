@@ -4,22 +4,21 @@ import MainNavigation from '../../components/ui/MainNavigation';
 import RegistrationHeader from './components/RegistrationHeader';
 import RegistrationForm from './components/RegistrationForm';
 import SecurityFeatures from './components/SecurityFeatures';
+import { useAuth } from '../../contexts/AuthContext';
 
 const StudentRegistration = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, userData, loading } = useAuth();
 
   useEffect(() => {
-    const authToken = localStorage.getItem('authToken');
-    const userRole = localStorage.getItem('userRole');
-
-    if (authToken && userRole) {
-      if (userRole === 'student') {
+    if (isAuthenticated && userData && !loading) {
+      if (userData.role === 'student') {
         navigate('/student-dashboard', { replace: true });
-      } else if (userRole === 'faculty' || userRole === 'admin') {
+      } else {
         navigate('/faculty-dashboard', { replace: true });
       }
     }
-  }, [navigate]);
+  }, [navigate, isAuthenticated, userData, loading]);
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-background)' }}>

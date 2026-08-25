@@ -11,49 +11,114 @@ import RecommendedResourceCard from './components/RecommendedResourceCard';
 import ActivityFeedItem from './components/ActivityFeedItem';
 import QuickActionCard from './components/QuickActionCard';
 
+import AuthenticationGuard from '../../components/ui/AuthenticationGuard';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
+
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [selectedUpload, setSelectedUpload] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  
+  const { isAuthenticated, userData } = useAuth();
+  const userRole = userData?.role;
+
+  const [stats, setStats] = useState({ shared: 0, approved: 0 });
+  const [recentUploads, setRecentUploads] = useState([]);
+  const [recommendedResources, setRecommendedResources] = useState([]);
+  const [downloadsAccessed, setDownloadsAccessed] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const role = localStorage.getItem('userRole');
+    const fetchDashboardData = async () => {
+      if (!userData?.id) return;
+      setIsLoading(true);
 
-    if (token && role === 'student') {
-      setIsAuthenticated(true);
-      setUserRole(role);
-    } else {
-      navigate('/login');
-    }
-  }, [navigate]);
+      try {
+        // Fetch user's own resources for stats and recent uploads
+        const { data: myResources, error: myError } = await supabase
+          .from('resources')
+          .select('*')
+          .eq('uploader_id', userData.id)
+          .order('created_at', { ascending: false });
+
+        if (!myError && myResources) {
+          const approvedCount = myResources.filter(r => r.status === 'approved').length;
+          setStats({ shared: myResources.length, approved: approvedCount });
+          
+          setRecentUploads(myResources.map(r => ({
+            id: r.id,
+            title: r.title,
+            subject: r.subject,
+            fileType: r.file_type?.toUpperCase(),
+            uploadDate: r.created_at,
+            status: r.status,
+            downloads: r.download_count || 0,
+            feedback: r.status === 'rejected' ? 'This resource did not meet our quality guidelines. Please revise and upload again.' : null
+          })).slice(0, 5)); // show latest 5
+        }
+
+        // Fetch recommended resources based on course/subject
+        const { data: recData, error: recError } = await supabase
+          .from('resources')
+          .select('*, profiles:uploader_id(name)')
+          .eq('status', 'approved')
+          .neq('uploader_id', userData.id)
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (!recError && recData) {
+          setRecommendedResources(recData.map(r => ({
+            id: r.id,
+            title: r.title,
+            subject: r.subject,
+            fileType: r.file_type?.toUpperCase(),
+            uploaderName: r.profiles?.name || 'Unknown',
+            uploaderAvatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1b43e8b7f-1763295504724.png",
+            uploaderAvatarAlt: 'User Avatar',
+            uploadDate: r.created_at,
+            downloads: r.download_count || 0,
+            rating: 4.8 // Dummy rating
+          })));
+        }
+
+        const history = JSON.parse(localStorage.getItem('downloadHistory') || '[]');
+        setDownloadsAccessed(history.length);
+
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [userData]);
 
   const studentStats = [
   {
     icon: 'Upload',
     label: 'Resources Shared',
-    value: '12',
+    value: stats.shared.toString(),
     trend: 'up',
-    trendValue: '+3',
+    trendValue: '+0',
     iconBgColor: 'bg-blue-100 dark:bg-blue-900'
   },
   {
     icon: 'Download',
     label: 'Downloads Accessed',
-    value: '48',
+    value: downloadsAccessed.toString(),
     trend: 'up',
-    trendValue: '+12',
+    trendValue: '+0',
     iconBgColor: 'bg-purple-100 dark:bg-purple-900'
   },
   {
     icon: 'CheckCircle',
     label: 'Approved Resources',
-    value: '9',
+    value: stats.approved.toString(),
     trend: 'up',
-    trendValue: '+2',
+    trendValue: '+0',
     iconBgColor: 'bg-green-100 dark:bg-green-900'
   },
   {
@@ -64,40 +129,6 @@ const StudentDashboard = () => {
     trendValue: '+5%',
     iconBgColor: 'bg-amber-100 dark:bg-amber-900'
   }];
-
-
-  const recentUploads = [
-  {
-    id: 1,
-    title: 'Data Structures and Algorithms - Complete Notes',
-    subject: 'Computer Science',
-    fileType: 'PDF',
-    uploadDate: '2025-12-20T10:30:00',
-    status: 'approved',
-    downloads: 24,
-    feedback: null
-  },
-  {
-    id: 2,
-    title: 'Organic Chemistry Reaction Mechanisms',
-    subject: 'Chemistry',
-    fileType: 'PPT',
-    uploadDate: '2025-12-22T14:15:00',
-    status: 'pending',
-    downloads: 0,
-    feedback: null
-  },
-  {
-    id: 3,
-    title: 'Calculus II - Integration Techniques',
-    subject: 'Mathematics',
-    fileType: 'PDF',
-    uploadDate: '2025-12-18T09:00:00',
-    status: 'rejected',
-    downloads: 0,
-    feedback: 'The content needs more detailed explanations for complex integration methods. Please include step-by-step solutions for at least 5 examples per technique.'
-  }];
-
 
   const subjectCategories = [
   {
@@ -135,100 +166,17 @@ const StudentDashboard = () => {
     iconBg: 'bg-amber-100 dark:bg-amber-900',
     resourceCount: 87,
     lastUpdated: '3 hours ago'
-  },
-  {
-    id: 'biology',
-    name: 'Biology',
-    description: 'Cell biology, genetics, ecology, and human anatomy resources',
-    icon: 'Microscope',
-    iconBg: 'bg-red-100 dark:bg-red-900',
-    resourceCount: 112,
-    lastUpdated: '6 hours ago'
-  },
-  {
-    id: 'engineering',
-    name: 'Engineering',
-    description: 'Mechanical, electrical, civil engineering principles and applications',
-    icon: 'Cog',
-    iconBg: 'bg-indigo-100 dark:bg-indigo-900',
-    resourceCount: 143,
-    lastUpdated: '4 hours ago'
   }];
-
-
-  const recommendedResources = [
-  {
-    id: 1,
-    title: 'Advanced Database Management Systems - Complete Guide',
-    subject: 'Computer Science',
-    fileType: 'PDF',
-    uploaderName: 'Dr. Sarah Mitchell',
-    uploaderAvatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1b43e8b7f-1763295504724.png",
-    uploaderAvatarAlt: 'Professional headshot of Caucasian woman with shoulder-length brown hair wearing navy blazer and white blouse',
-    uploadDate: '2025-12-24T11:20:00',
-    downloads: 156,
-    rating: 4.8
-  },
-  {
-    id: 2,
-    title: 'Linear Algebra Applications in Machine Learning',
-    subject: 'Mathematics',
-    fileType: 'PPT',
-    uploaderName: 'Prof. James Chen',
-    uploaderAvatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1bb8988be-1763295050652.png",
-    uploaderAvatarAlt: 'Professional headshot of Asian man with short black hair wearing gray suit and blue tie',
-    uploadDate: '2025-12-23T16:45:00',
-    downloads: 203,
-    rating: 4.9
-  },
-  {
-    id: 3,
-    title: 'Quantum Mechanics - Wave Functions and Operators',
-    subject: 'Physics',
-    fileType: 'PDF',
-    uploaderName: 'Dr. Emily Rodriguez',
-    uploaderAvatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1631c1677-1763295642190.png",
-    uploaderAvatarAlt: 'Professional headshot of Hispanic woman with long dark hair wearing burgundy blouse',
-    uploadDate: '2025-12-25T09:30:00',
-    downloads: 89,
-    rating: 4.7
-  }];
-
 
   const activityFeed = [
   {
     id: 1,
-    type: 'approval',
-    message: 'Your resource "Data Structures and Algorithms - Complete Notes" has been approved by Dr. Sarah Mitchell',
-    timestamp: new Date(Date.now() - 7200000),
-    userAvatar: "https://img.rocket.new/generatedImages/rocket_gen_img_17784c577-1763297418164.png",
-    userAvatarAlt: 'Professional headshot of Caucasian woman with shoulder-length brown hair wearing navy blazer'
-  },
-  {
-    id: 2,
     type: 'collaboration',
     message: 'New study group formed for Advanced Database Management Systems - 12 students joined',
     timestamp: new Date(Date.now() - 14400000),
     userAvatar: null,
     userAvatarAlt: null
-  },
-  {
-    id: 3,
-    type: 'upload',
-    message: 'Prof. James Chen uploaded new resource: "Linear Algebra Applications in Machine Learning"',
-    timestamp: new Date(Date.now() - 21600000),
-    userAvatar: "https://img.rocket.new/generatedImages/rocket_gen_img_13a48293d-1763296098326.png",
-    userAvatarAlt: 'Professional headshot of Asian man with short black hair wearing gray suit'
-  },
-  {
-    id: 4,
-    type: 'download',
-    message: 'Your resource has been downloaded 5 times in the last hour',
-    timestamp: new Date(Date.now() - 28800000),
-    userAvatar: null,
-    userAvatarAlt: null
   }];
-
 
   const quickActions = [
   {
@@ -263,13 +211,10 @@ const StudentDashboard = () => {
     }
   };
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-background">
-      <MainNavigation userRole={userRole} isAuthenticated={isAuthenticated} />
+    <AuthenticationGuard requiredRoles={['student']}>
+      <div className="min-h-screen bg-background">
+        <MainNavigation userRole={userRole} isAuthenticated={isAuthenticated} />
       <main className="pt-16 md:pt-20 pb-8 md:pb-12 lg:pb-16">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           {/* Header Section */}
@@ -277,7 +222,7 @@ const StudentDashboard = () => {
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 md:gap-6 mb-6 md:mb-8">
               <div>
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-2">
-                  Welcome Back, Student!
+                  Welcome Back, {userData?.name || 'Student'}!
                 </h1>
                 <p className="text-sm md:text-base text-muted-foreground">
                   Your collaborative learning dashboard for academic success
@@ -338,27 +283,27 @@ const StudentDashboard = () => {
               <section>
                 <div className="flex items-center justify-between mb-4 md:mb-6">
                   <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground">
-                    Recent Uploads
+                    Your Submissions
                   </h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    iconName="ArrowRight"
-                    iconPosition="right">
-
-                    View All
-                  </Button>
                 </div>
                 
-                <div className="grid grid-cols-1 gap-4 md:gap-5">
-                  {recentUploads?.map((upload) =>
-                  <RecentUploadCard
-                    key={upload?.id}
-                    upload={upload}
-                    onViewFeedback={handleViewFeedback} />
-
-                  )}
-                </div>
+                {isLoading ? (
+                  <div className="animate-pulse bg-muted rounded-xl h-[200px]"></div>
+                ) : recentUploads.length === 0 ? (
+                  <div className="bg-card border border-border rounded-xl p-8 text-center">
+                    <p className="text-muted-foreground mb-4">You haven't uploaded any resources yet.</p>
+                    <Button variant="outline" onClick={() => navigate('/resource-upload')}>Upload Your First Resource</Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 md:gap-5">
+                    {recentUploads?.map((upload) =>
+                    <RecentUploadCard
+                      key={upload?.id}
+                      upload={upload}
+                      onViewFeedback={handleViewFeedback} />
+                    )}
+                  </div>
+                )}
               </section>
 
               {/* Subject Categories */}
@@ -385,11 +330,19 @@ const StudentDashboard = () => {
                   Recommended for You
                 </h2>
                 
-                <div className="space-y-4 md:space-y-5">
-                  {recommendedResources?.map((resource) =>
-                  <RecommendedResourceCard key={resource?.id} resource={resource} />
-                  )}
-                </div>
+                {isLoading ? (
+                  <div className="animate-pulse bg-muted rounded-xl h-[300px]"></div>
+                ) : recommendedResources.length === 0 ? (
+                  <div className="bg-card border border-border rounded-xl p-4 text-center">
+                    <p className="text-muted-foreground">Check back later for recommendations.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 md:space-y-5">
+                    {recommendedResources?.map((resource) =>
+                    <RecommendedResourceCard key={resource?.id} resource={resource} />
+                    )}
+                  </div>
+                )}
               </section>
 
               {/* Activity Feed */}
@@ -478,7 +431,9 @@ const StudentDashboard = () => {
           </div>
         </>
       }
-    </div>);
+    </div>
+    </AuthenticationGuard>
+  );
 
 };
 

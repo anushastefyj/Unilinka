@@ -9,12 +9,20 @@ import RecentReviewsSection from './components/RecentReviewsSection';
 import ReviewModal from './components/ReviewModal';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 const FacultyDashboard = () => {
-  const [userRole] = useState('faculty');
-  const [isAuthenticated] = useState(true);
+  const { isAuthenticated, userData } = useAuth();
+  const userRole = userData?.role;
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [reviewModalMaterial, setReviewModalMaterial] = useState(null);
+  
+  const [pendingMaterials, setPendingMaterials] = useState([]);
+  const [recentReviews, setRecentReviews] = useState([]);
+  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+
   const [filters, setFilters] = useState({
     subject: 'all',
     fileType: 'all',
@@ -27,11 +35,82 @@ const FacultyDashboard = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch stats
+      const { data: allResources, error: statsError } = await supabase
+        .from('resources')
+        .select('status, created_at');
+        
+      if (!statsError && allResources) {
+        const pendingCount = allResources.filter(r => r.status === 'pending').length;
+        const approvedCount = allResources.filter(r => r.status === 'approved').length;
+        const rejectedCount = allResources.filter(r => r.status === 'rejected').length;
+        setStats({ pending: pendingCount, approved: approvedCount, rejected: rejectedCount });
+      }
+
+      // Fetch pending
+      const { data: pendingData, error: pendingError } = await supabase
+        .from('resources')
+        .select('*, profiles:uploader_id(name)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (!pendingError && pendingData) {
+        setPendingMaterials(pendingData.map(r => ({
+          id: r.id,
+          title: r.title,
+          subject: r.subject,
+          studentName: r.profiles?.name || 'Unknown Student',
+          uploadDate: r.created_at,
+          fileType: r.file_type?.toUpperCase(),
+          fileSize: 'N/A',
+          downloads: 0,
+          priority: 'medium', // Default
+          description: r.description,
+          previewUrl: r.file_url,
+          thumbnailAlt: r.title
+        })));
+      }
+
+      // Fetch recent reviews
+      const { data: recentData, error: recentError } = await supabase
+        .from('resources')
+        .select('*, profiles:uploader_id(name)')
+        .in('status', ['approved', 'rejected'])
+        .order('created_at', { ascending: false }) // Using created_at since updated_at may not exist
+        .limit(10);
+
+      if (!recentError && recentData) {
+        setRecentReviews(recentData.map(r => ({
+          id: r.id,
+          title: r.title,
+          subject: r.subject,
+          studentName: r.profiles?.name || 'Unknown Student',
+          fileType: r.file_type?.toUpperCase(),
+          status: r.status,
+          reviewedAt: r.created_at,
+          comment: r.status === 'approved' ? 'Approved' : 'Rejected',
+          notificationSent: true
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const statistics = [
   {
     id: 1,
     type: 'pending',
-    value: '24',
+    value: stats.pending.toString(),
     label: 'Pending Reviews',
     subtitle: 'Awaiting your review',
     trend: null
@@ -39,179 +118,56 @@ const FacultyDashboard = () => {
   {
     id: 2,
     type: 'target',
-    value: '8',
+    value: '8', // Target is arbitrary for now
     label: 'Daily Target',
-    subtitle: '3 completed today',
+    subtitle: 'Completed today',
     trend: null
   },
   {
     id: 3,
     type: 'approved',
-    value: '156',
-    label: 'Approved This Month',
-    subtitle: '89% approval rate',
-    trend: 12
+    value: stats.approved.toString(),
+    label: 'Total Approved',
+    subtitle: 'Platform wide',
+    trend: null
   },
   {
     id: 4,
     type: 'rejected',
-    value: '18',
-    label: 'Rejected This Month',
-    subtitle: '11% rejection rate',
-    trend: -5
+    value: stats.rejected.toString(),
+    label: 'Total Rejected',
+    subtitle: 'Platform wide',
+    trend: null
   }];
 
-
-  const pendingMaterials = [
-  {
-    id: 1,
-    title: 'Advanced Calculus Problem Sets with Detailed Solutions',
-    subject: 'Mathematics',
-    studentName: 'Sarah Johnson',
-    uploadDate: '2025-12-24T10:30:00',
-    fileType: 'PDF',
-    fileSize: '2.4 MB',
-    downloads: 0,
-    priority: 'high',
-    thumbnail: "https://images.unsplash.com/photo-1658551345623-5bcc9eae7c1e",
-    thumbnailAlt: 'Close-up view of mathematical equations and calculus formulas written on white paper with blue pen',
-    description: 'Comprehensive collection of advanced calculus problems covering limits, derivatives, integrals, and series with step-by-step solutions for each problem.',
-    previewUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
-  },
-  {
-    id: 2,
-    title: 'Quantum Mechanics Lecture Notes - Semester 1',
-    subject: 'Physics',
-    studentName: 'Michael Chen',
-    uploadDate: '2025-12-23T14:15:00',
-    fileType: 'PDF',
-    fileSize: '5.8 MB',
-    downloads: 0,
-    priority: 'high',
-    thumbnail: "https://img.rocket.new/generatedImages/rocket_gen_img_1033cff0b-1765310691002.png",
-    thumbnailAlt: 'Quantum physics equations and wave functions displayed on dark chalkboard with colorful chalk illustrations',
-    description: 'Complete lecture notes from Quantum Mechanics course covering wave-particle duality, Schrödinger equation, and quantum states.',
-    previewUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
-  },
-  {
-    id: 3,
-    title: 'Organic Chemistry Reaction Mechanisms Guide',
-    subject: 'Chemistry',
-    studentName: 'Emily Rodriguez',
-    uploadDate: '2025-12-23T09:45:00',
-    fileType: 'PPT',
-    fileSize: '3.2 MB',
-    downloads: 0,
-    priority: 'medium',
-    thumbnail: "https://images.unsplash.com/photo-1677381742617-5dd0d0cbecab",
-    thumbnailAlt: 'Colorful molecular structure models and chemical formulas on laboratory desk with test tubes in background',
-    description: 'Visual presentation of major organic chemistry reaction mechanisms with detailed arrow-pushing diagrams and examples.',
-    previewUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
-  },
-  {
-    id: 4,
-    title: 'Data Structures and Algorithms Implementation in Python',
-    subject: 'Computer Science',
-    studentName: 'David Kim',
-    uploadDate: '2025-12-22T16:20:00',
-    fileType: 'PDF',
-    fileSize: '4.1 MB',
-    downloads: 0,
-    priority: 'medium',
-    thumbnail: "https://images.unsplash.com/photo-1479838376502-4b3c533c4bb5",
-    thumbnailAlt: 'Python programming code displayed on computer screen showing data structure implementation with syntax highlighting',
-    description: 'Practical guide to implementing common data structures and algorithms in Python with code examples and complexity analysis.',
-    previewUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
-  },
-  {
-    id: 5,
-    title: 'Cell Biology Lab Manual - Microscopy Techniques',
-    subject: 'Biology',
-    studentName: 'Jessica Martinez',
-    uploadDate: '2025-12-22T11:30:00',
-    fileType: 'DOC',
-    fileSize: '1.9 MB',
-    downloads: 0,
-    priority: 'low',
-    thumbnail: "https://images.unsplash.com/photo-1617178373958-6194eede5e98",
-    thumbnailAlt: 'Microscopic view of colorful stained cells showing detailed cellular structures and organelles under high magnification',
-    description: 'Laboratory manual covering various microscopy techniques for cell biology studies including sample preparation and staining methods.',
-    previewUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
-  },
-  {
-    id: 6,
-    title: 'Shakespeare Analysis - Hamlet Character Study',
-    subject: 'English Literature',
-    studentName: 'Robert Taylor',
-    uploadDate: '2025-12-21T15:45:00',
-    fileType: 'PDF',
-    fileSize: '2.7 MB',
-    downloads: 0,
-    priority: 'low',
-    thumbnail: "https://images.unsplash.com/photo-1706726080890-e004621ba852",
-    thumbnailAlt: 'Open vintage book with Shakespeare text on wooden desk with quill pen and candlelight creating dramatic atmosphere',
-    description: 'In-depth character analysis of major characters in Hamlet with textual evidence and critical interpretations.',
-    previewUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
-  }];
-
-
-  const recentReviews = [
-  {
-    id: 1,
-    title: 'Linear Algebra Study Guide',
-    subject: 'Mathematics',
-    studentName: 'Alex Thompson',
-    fileType: 'PDF',
-    status: 'approved',
-    reviewedAt: '2025-12-26T10:15:00',
-    comment: 'Excellent resource with clear explanations and examples.',
-    notificationSent: true
-  },
-  {
-    id: 2,
-    title: 'Thermodynamics Problem Solutions',
-    subject: 'Physics',
-    studentName: 'Maria Garcia',
-    fileType: 'PDF',
-    status: 'approved',
-    reviewedAt: '2025-12-26T09:30:00',
-    comment: 'Well-organized solutions with proper methodology.',
-    notificationSent: true
-  },
-  {
-    id: 3,
-    title: 'Incomplete Chemistry Notes',
-    subject: 'Chemistry',
-    studentName: 'James Wilson',
-    fileType: 'DOC',
-    status: 'rejected',
-    reviewedAt: '2025-12-26T08:45:00',
-    comment: 'Content is incomplete and missing key topics. Please revise and resubmit with complete information.',
-    notificationSent: false
-  }];
-
+  const updateResourceStatus = async (id, status, isBatch = false) => {
+    try {
+      const { error } = await supabase
+        .from('resources')
+        .update({ status: status })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      if (!isBatch) {
+        await fetchData();
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Failed to update resource status.');
+    }
+  };
 
   const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value
-    }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleResetFilters = () => {
-    setFilters({
-      subject: 'all',
-      fileType: 'all',
-      priority: 'all',
-      sortBy: 'date-desc',
-      searchQuery: ''
-    });
+    setFilters({ subject: 'all', fileType: 'all', priority: 'all', sortBy: 'date-desc', searchQuery: '' });
   };
 
   const handleSelectMaterial = (id, isSelected) => {
-    setSelectedMaterials((prev) =>
-    isSelected ? [...prev, id] : prev?.filter((materialId) => materialId !== id)
-    );
+    setSelectedMaterials((prev) => isSelected ? [...prev, id] : prev?.filter((materialId) => materialId !== id));
   };
 
   const handleClearSelection = () => {
@@ -222,43 +178,43 @@ const FacultyDashboard = () => {
     setReviewModalMaterial(material);
   };
 
-  const handleQuickApprove = (material) => {
-    console.log('Quick approve:', material?.id);
-    alert(`"${material?.title}" has been approved successfully!`);
+  const handleQuickApprove = async (material) => {
+    await updateResourceStatus(material.id, 'approved');
   };
 
-  const handleQuickReject = (material) => {
+  const handleQuickReject = async (material) => {
     const reason = prompt('Please provide a reason for rejection:');
-    if (reason) {
-      console.log('Quick reject:', material?.id, reason);
-      alert(`"${material?.title}" has been rejected.`);
+    if (reason !== null) {
+      await updateResourceStatus(material.id, 'rejected');
     }
   };
 
-  const handleBatchApprove = () => {
-    console.log('Batch approve:', selectedMaterials);
-    alert(`${selectedMaterials?.length} materials have been approved successfully!`);
+  const handleBatchApprove = async () => {
+    for (const id of selectedMaterials) {
+      await updateResourceStatus(id, 'approved', true);
+    }
+    await fetchData();
     setSelectedMaterials([]);
   };
 
-  const handleBatchReject = () => {
+  const handleBatchReject = async () => {
     const reason = prompt('Please provide a reason for batch rejection:');
-    if (reason) {
-      console.log('Batch reject:', selectedMaterials, reason);
-      alert(`${selectedMaterials?.length} materials have been rejected.`);
+    if (reason !== null) {
+      for (const id of selectedMaterials) {
+        await updateResourceStatus(id, 'rejected', true);
+      }
+      await fetchData();
       setSelectedMaterials([]);
     }
   };
 
-  const handleApproveFromModal = (id, comment) => {
-    console.log('Approve from modal:', id, comment);
-    alert('Material approved successfully!');
+  const handleApproveFromModal = async (id, comment) => {
+    await updateResourceStatus(id, 'approved');
     setReviewModalMaterial(null);
   };
 
-  const handleRejectFromModal = (id, comment) => {
-    console.log('Reject from modal:', id, comment);
-    alert('Material rejected successfully!');
+  const handleRejectFromModal = async (id, comment) => {
+    await updateResourceStatus(id, 'rejected');
     setReviewModalMaterial(null);
   };
 
@@ -267,17 +223,12 @@ const FacultyDashboard = () => {
   };
 
   const filteredMaterials = pendingMaterials?.filter((material) => {
-    const matchesSubject =
-    filters?.subject === 'all' || material?.subject?.toLowerCase()?.replace(/\s+/g, '-') === filters?.subject;
-    const matchesFileType =
-    filters?.fileType === 'all' ||
-    material?.fileType?.toLowerCase() === filters?.fileType;
-    const matchesPriority =
-    filters?.priority === 'all' || material?.priority === filters?.priority;
-    const matchesSearch =
-    filters?.searchQuery === '' ||
-    material?.title?.toLowerCase()?.includes(filters?.searchQuery?.toLowerCase()) ||
-    material?.studentName?.toLowerCase()?.includes(filters?.searchQuery?.toLowerCase());
+    const matchesSubject = filters?.subject === 'all' || material?.subject?.toLowerCase()?.replace(/\s+/g, '-') === filters?.subject;
+    const matchesFileType = filters?.fileType === 'all' || material?.fileType?.toLowerCase() === filters?.fileType;
+    const matchesPriority = filters?.priority === 'all' || material?.priority === filters?.priority;
+    const matchesSearch = filters?.searchQuery === '' || 
+      material?.title?.toLowerCase()?.includes(filters?.searchQuery?.toLowerCase()) ||
+      material?.studentName?.toLowerCase()?.includes(filters?.searchQuery?.toLowerCase());
 
     return matchesSubject && matchesFileType && matchesPriority && matchesSearch;
   });
@@ -299,20 +250,10 @@ const FacultyDashboard = () => {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  variant="outline"
-                  iconName="Settings"
-                  iconPosition="left"
-                  onClick={() => alert('Subject management coming soon')}>
-
+                <Button variant="outline" iconName="Settings" iconPosition="left" onClick={() => alert('Subject management coming soon')}>
                   Manage Subjects
                 </Button>
-                <Button
-                  variant="default"
-                  iconName="BarChart3"
-                  iconPosition="left"
-                  onClick={() => alert('Analytics coming soon')}>
-
+                <Button variant="default" iconName="BarChart3" iconPosition="left" onClick={() => alert('Analytics coming soon')}>
                   View Analytics
                 </Button>
               </div>
@@ -326,7 +267,6 @@ const FacultyDashboard = () => {
               onReset={handleResetFilters}
               resultCount={filteredMaterials?.length} />
 
-
             <div>
               <div className="flex items-center justify-between mb-4 md:mb-6">
                 <h2 className="text-xl md:text-2xl font-semibold text-foreground">
@@ -339,8 +279,10 @@ const FacultyDashboard = () => {
                 }
               </div>
 
-              {filteredMaterials?.length === 0 ?
-              <div className="bg-card border border-border rounded-xl p-8 md:p-12 text-center">
+              {isLoading ? (
+                <div className="text-center p-8 text-muted-foreground">Loading pending reviews...</div>
+              ) : filteredMaterials?.length === 0 ? (
+                <div className="bg-card border border-border rounded-xl p-8 md:p-12 text-center">
                   <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
                     <Icon name="Inbox" size={32} color="var(--color-muted-foreground)" />
                   </div>
@@ -350,22 +292,21 @@ const FacultyDashboard = () => {
                   <p className="text-sm md:text-base text-muted-foreground">
                     Try adjusting your filters or check back later for new submissions
                   </p>
-                </div> :
-
-              <div className="space-y-4 md:space-y-6">
-                  {filteredMaterials?.map((material) =>
-                <MaterialReviewCard
-                  key={material?.id}
-                  material={material}
-                  onReview={handleReview}
-                  onQuickApprove={handleQuickApprove}
-                  onQuickReject={handleQuickReject}
-                  onSelect={handleSelectMaterial}
-                  isSelected={selectedMaterials?.includes(material?.id)} />
-
-                )}
                 </div>
-              }
+              ) : (
+                <div className="space-y-4 md:space-y-6">
+                  {filteredMaterials?.map((material) =>
+                    <MaterialReviewCard
+                      key={material?.id}
+                      material={material}
+                      onReview={handleReview}
+                      onQuickApprove={handleQuickApprove}
+                      onQuickReject={handleQuickReject}
+                      onSelect={handleSelectMaterial}
+                      isSelected={selectedMaterials?.includes(material?.id)} />
+                  )}
+                </div>
+              )}
             </div>
 
             <RecentReviewsSection
@@ -381,18 +322,15 @@ const FacultyDashboard = () => {
           onBatchReject={handleBatchReject}
           onClearSelection={handleClearSelection} />
 
-
         {reviewModalMaterial &&
         <ReviewModal
           material={reviewModalMaterial}
           onClose={() => setReviewModalMaterial(null)}
           onApprove={handleApproveFromModal}
           onReject={handleRejectFromModal} />
-
         }
       </div>
     </AuthenticationGuard>);
-
 };
 
 export default FacultyDashboard;

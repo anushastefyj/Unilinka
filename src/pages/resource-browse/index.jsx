@@ -9,11 +9,17 @@ import FilterPanel from './components/FilterPanel';
 import SubjectSidebar from './components/SubjectSidebar';
 import ResourceDetailModal from './components/ResourceDetailModal';
 import FeaturedSection from './components/FeaturedSection';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 const ResourceBrowse = () => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const { isAuthenticated, userData } = useAuth();
+  const userRole = userData?.role;
+  
+  const [resources, setResources] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     subject: 'all',
@@ -29,218 +35,66 @@ const ResourceBrowse = () => {
   const [downloadHistory, setDownloadHistory] = useState([]);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const role = localStorage.getItem('userRole');
-    
-    if (token) {
-      setIsAuthenticated(true);
-      setUserRole(role);
-    }
-
     const history = JSON.parse(localStorage.getItem('downloadHistory') || '[]');
     setDownloadHistory(history);
   }, []);
 
-  const mockResources = [
-    {
-      id: 1,
-      title: "Introduction to Data Structures and Algorithms",
-      description: "Comprehensive guide covering fundamental data structures including arrays, linked lists, stacks, queues, trees, and graphs. Includes implementation examples and complexity analysis for common operations.",
-      subject: "Computer Science",
-      fileType: "PDF",
-      fileSize: "4.2 MB",
-      academicLevel: "Undergraduate",
-      uploadDate: "2025-12-20T10:30:00",
-      uploadedBy: "Dr. Sarah Mitchell",
-      facultyVerified: true,
-      isFeatured: true,
-      downloadCount: 342,
-      tags: ["algorithms", "data structures", "programming", "computer science"],
-      facultyRecommendation: "Essential reading for CS students. Clear explanations with practical examples that build strong foundational knowledge."
-    },
-    {
-      id: 2,
-      title: "Calculus II: Integration Techniques and Applications",
-      description: "Advanced integration methods including substitution, integration by parts, partial fractions, and trigonometric substitution. Features solved examples and practice problems with detailed solutions.",
-      subject: "Mathematics",
-      fileType: "PDF",
-      fileSize: "3.8 MB",
-      academicLevel: "Undergraduate",
-      uploadDate: "2025-12-18T14:20:00",
-      uploadedBy: "Prof. James Anderson",
-      facultyVerified: true,
-      isFeatured: true,
-      downloadCount: 289,
-      tags: ["calculus", "integration", "mathematics", "analysis"],
-      facultyRecommendation: "Excellent resource with step-by-step solutions. Highly recommended for mastering integration techniques."
-    },
-    {
-      id: 3,
-      title: "Quantum Mechanics Fundamentals Presentation",
-      description: "Visual presentation covering wave-particle duality, Schrödinger equation, quantum states, and measurement theory. Includes animations and interactive diagrams for better understanding.",
-      subject: "Physics",
-      fileType: "PPT",
-      fileSize: "12.5 MB",
-      academicLevel: "Graduate",
-      uploadDate: "2025-12-15T09:45:00",
-      uploadedBy: "Dr. Emily Chen",
-      facultyVerified: true,
-      isFeatured: true,
-      downloadCount: 256,
-      tags: ["quantum mechanics", "physics", "wave functions", "quantum theory"],
-      facultyRecommendation: "Outstanding visual presentation that makes complex quantum concepts accessible. Great for both learning and teaching."
-    },
-    {
-      id: 4,
-      title: "Organic Chemistry Reaction Mechanisms",
-      description: "Detailed study of organic reaction mechanisms including nucleophilic substitution, elimination reactions, addition reactions, and rearrangements. Contains reaction schemes and mechanistic pathways.",
-      subject: "Chemistry",
-      fileType: "DOC",
-      fileSize: "2.1 MB",
-      academicLevel: "Undergraduate",
-      uploadDate: "2025-12-22T11:15:00",
-      uploadedBy: "Prof. Michael Roberts",
-      facultyVerified: true,
-      isFeatured: false,
-      downloadCount: 198,
-      tags: ["organic chemistry", "reactions", "mechanisms", "synthesis"]
-    },
-    {
-      id: 5,
-      title: "Cell Biology and Molecular Genetics",
-      description: "Comprehensive coverage of cell structure, function, and molecular genetics. Includes detailed diagrams of cellular processes, DNA replication, transcription, and translation mechanisms.",
-      subject: "Biology",
-      fileType: "PDF",
-      fileSize: "5.7 MB",
-      academicLevel: "Undergraduate",
-      uploadDate: "2025-12-19T16:30:00",
-      uploadedBy: "Dr. Lisa Thompson",
-      facultyVerified: true,
-      isFeatured: false,
-      downloadCount: 234,
-      tags: ["cell biology", "genetics", "molecular biology", "DNA"]
-    },
-    {
-      id: 6,
-      title: "Shakespeare\'s Tragedies: Literary Analysis",
-      description: "In-depth analysis of Shakespeare's major tragedies including Hamlet, Macbeth, Othello, and King Lear. Explores themes, character development, and historical context with critical interpretations.",
-      subject: "English Literature",
-      fileType: "PDF",
-      fileSize: "3.2 MB",
-      academicLevel: "Undergraduate",
-      uploadDate: "2025-12-17T13:00:00",
-      uploadedBy: "Prof. David Wilson",
-      facultyVerified: true,
-      isFeatured: false,
-      downloadCount: 167,
-      tags: ["shakespeare", "literature", "drama", "tragedy", "analysis"]
-    },
-    {
-      id: 7,
-      title: "World War II: Causes and Consequences",
-      description: "Comprehensive historical analysis of World War II covering political, economic, and social factors. Includes primary source documents, maps, and timeline of major events from 1939-1945.",
-      subject: "History",
-      fileType: "PPT",
-      fileSize: "8.9 MB",
-      academicLevel: "Undergraduate",
-      uploadDate: "2025-12-21T10:00:00",
-      uploadedBy: "Dr. Robert Martinez",
-      facultyVerified: true,
-      isFeatured: false,
-      downloadCount: 203,
-      tags: ["world war II", "history", "20th century", "warfare"]
-    },
-    {
-      id: 8,
-      title: "Microeconomics: Supply and Demand Analysis",
-      description: "Fundamental concepts of microeconomics focusing on supply and demand theory, market equilibrium, elasticity, and consumer behavior. Features real-world examples and graphical analysis.",
-      subject: "Economics",
-      fileType: "PDF",
-      fileSize: "2.8 MB",
-      academicLevel: "Undergraduate",
-      uploadDate: "2025-12-16T15:45:00",
-      uploadedBy: "Prof. Jennifer Lee",
-      facultyVerified: true,
-      isFeatured: false,
-      downloadCount: 178,
-      tags: ["microeconomics", "supply and demand", "markets", "economics"]
-    },
-    {
-      id: 9,
-      title: "Machine Learning Algorithms Overview",
-      description: "Introduction to supervised and unsupervised learning algorithms including linear regression, decision trees, neural networks, and clustering methods. Contains Python code examples and datasets.",
-      subject: "Computer Science",
-      fileType: "PDF",
-      fileSize: "6.4 MB",
-      academicLevel: "Graduate",
-      uploadDate: "2025-12-23T09:30:00",
-      uploadedBy: "Dr. Alex Kumar",
-      facultyVerified: true,
-      isFeatured: false,
-      downloadCount: 312,
-      tags: ["machine learning", "AI", "algorithms", "data science"]
-    },
-    {
-      id: 10,
-      title: "Linear Algebra: Matrices and Vector Spaces",
-      description: "Complete guide to linear algebra covering matrix operations, determinants, eigenvalues, eigenvectors, and vector spaces. Includes theoretical foundations and practical applications.",
-      subject: "Mathematics",
-      fileType: "DOC",
-      fileSize: "3.5 MB",
-      academicLevel: "Undergraduate",
-      uploadDate: "2025-12-14T12:20:00",
-      uploadedBy: "Prof. Maria Garcia",
-      facultyVerified: true,
-      isFeatured: false,
-      downloadCount: 245,
-      tags: ["linear algebra", "matrices", "vectors", "mathematics"]
-    },
-    {
-      id: 11,
-      title: "Thermodynamics and Statistical Mechanics",
-      description: "Advanced physics covering laws of thermodynamics, entropy, free energy, and statistical mechanics principles. Includes derivations and problem-solving strategies.",
-      subject: "Physics",
-      fileType: "PDF",
-      fileSize: "4.9 MB",
-      academicLevel: "Graduate",
-      uploadDate: "2025-12-13T14:00:00",
-      uploadedBy: "Dr. Thomas Brown",
-      facultyVerified: true,
-      isFeatured: false,
-      downloadCount: 189,
-      tags: ["thermodynamics", "statistical mechanics", "physics", "entropy"]
-    },
-    {
-      id: 12,
-      title: "Biochemistry: Protein Structure and Function",
-      description: "Detailed study of protein chemistry including amino acids, peptide bonds, protein folding, and enzyme kinetics. Features 3D molecular structures and reaction mechanisms.",
-      subject: "Chemistry",
-      fileType: "PPT",
-      fileSize: "11.2 MB",
-      academicLevel: "Graduate",
-      uploadDate: "2025-12-12T11:30:00",
-      uploadedBy: "Prof. Rachel Green",
-      facultyVerified: true,
-      isFeatured: false,
-      downloadCount: 221,
-      tags: ["biochemistry", "proteins", "enzymes", "molecular biology"]
-    }
-  ];
+  useEffect(() => {
+    const fetchResources = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('resources')
+          .select(`
+            *,
+            profiles:uploader_id(name)
+          `)
+          .eq('status', 'approved');
+
+        if (error) throw error;
+
+        const formatted = data.map(r => ({
+          id: r.id,
+          title: r.title,
+          description: r.description || "No description provided.",
+          subject: r.subject,
+          fileType: r.file_type?.toUpperCase(),
+          fileSize: "N/A", 
+          academicLevel: "Unknown",
+          uploadDate: r.created_at,
+          uploadedBy: r.profiles?.name || "Unknown",
+          facultyVerified: true, 
+          isFeatured: false, 
+          downloadCount: r.download_count || 0,
+          tags: [],
+          fileUrl: r.file_url
+        }));
+
+        setResources(formatted);
+      } catch (error) {
+        console.error("Error fetching resources:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchResources();
+  }, []);
 
   const subjects = [
-    { id: 1, name: 'All Subjects', icon: 'BookOpen', count: mockResources?.length, hasNew: false },
-    { id: 2, name: 'Computer Science', icon: 'Code', count: 2, hasNew: true },
-    { id: 3, name: 'Mathematics', icon: 'Calculator', count: 2, hasNew: false },
-    { id: 4, name: 'Physics', icon: 'Atom', count: 2, hasNew: true },
-    { id: 5, name: 'Chemistry', icon: 'FlaskConical', count: 2, hasNew: false },
-    { id: 6, name: 'Biology', icon: 'Microscope', count: 1, hasNew: false },
-    { id: 7, name: 'English Literature', icon: 'BookText', count: 1, hasNew: false },
-    { id: 8, name: 'History', icon: 'Landmark', count: 1, hasNew: false },
-    { id: 9, name: 'Economics', icon: 'TrendingUp', count: 1, hasNew: false }
+    { id: 1, name: 'All Subjects', icon: 'BookOpen', count: resources?.length, hasNew: false },
+    { id: 2, name: 'Computer Science', icon: 'Code', count: resources?.filter(r => r.subject === 'Computer Science')?.length, hasNew: true },
+    { id: 3, name: 'Mathematics', icon: 'Calculator', count: resources?.filter(r => r.subject === 'Mathematics')?.length, hasNew: false },
+    { id: 4, name: 'Physics', icon: 'Atom', count: resources?.filter(r => r.subject === 'Physics')?.length, hasNew: true },
+    { id: 5, name: 'Chemistry', icon: 'FlaskConical', count: resources?.filter(r => r.subject === 'Chemistry')?.length, hasNew: false },
+    { id: 6, name: 'Biology', icon: 'Microscope', count: resources?.filter(r => r.subject === 'Biology')?.length, hasNew: false },
+    { id: 7, name: 'English Literature', icon: 'BookText', count: resources?.filter(r => r.subject === 'English Literature')?.length, hasNew: false },
+    { id: 8, name: 'History', icon: 'Landmark', count: resources?.filter(r => r.subject === 'History')?.length, hasNew: false },
+    { id: 9, name: 'Economics', icon: 'TrendingUp', count: resources?.filter(r => r.subject === 'Economics')?.length, hasNew: false }
   ];
 
   const getFilteredResources = () => {
-    let filtered = [...mockResources];
+    let filtered = [...resources];
 
     if (searchQuery) {
       const query = searchQuery?.toLowerCase();
@@ -288,9 +142,9 @@ const ResourceBrowse = () => {
   };
 
   const filteredResources = getFilteredResources();
-  const featuredResources = mockResources?.filter(r => r?.isFeatured)?.slice(0, 3);
+  const featuredResources = resources?.filter(r => r?.isFeatured)?.slice(0, 3);
 
-  const handleDownload = (resource) => {
+  const handleDownload = async (resource) => {
     const newHistory = [
       {
         id: resource?.id,
@@ -303,9 +157,17 @@ const ResourceBrowse = () => {
     setDownloadHistory(newHistory);
     localStorage.setItem('downloadHistory', JSON.stringify(newHistory));
 
+    // Increment download count in DB
+    try {
+      await supabase.rpc('increment_download_count', { resource_id: resource.id });
+    } catch (error) {
+      console.error('Failed to increment download count', error);
+    }
+
     const link = document.createElement('a');
-    link.href = '#';
+    link.href = resource.fileUrl || '#';
     link.download = `${resource?.title}.${resource?.fileType?.toLowerCase()}`;
+    link.target = '_blank';
     document.body?.appendChild(link);
     link?.click();
     document.body?.removeChild(link);
@@ -428,7 +290,13 @@ const ResourceBrowse = () => {
                 </h2>
               </div>
 
-              {filteredResources?.length === 0 ? (
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="animate-pulse bg-muted rounded-xl h-[300px]"></div>
+                  ))}
+                </div>
+              ) : filteredResources?.length === 0 ? (
                 <div className="bg-card border border-border rounded-xl p-8 md:p-12 text-center">
                   <Icon name="SearchX" size={48} className="text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg md:text-xl font-semibold text-foreground mb-2">

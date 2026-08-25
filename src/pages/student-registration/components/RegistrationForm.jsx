@@ -5,11 +5,11 @@ import Button from '../../../components/ui/Button';
 import Select from '../../../components/ui/Select';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import Icon from '../../../components/AppIcon';
-import { signUp, signOutUser } from '../../../lib/firebaseAuth';
-import { createUser } from '../../../lib/firebaseDb';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const RegistrationForm = () => {
   const navigate = useNavigate();
+  const { signup, logout } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -184,33 +184,21 @@ const RegistrationForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Sign up with Firebase
-      const result = await signUp(formData.email, formData.password, formData.fullName);
+      const { data, error } = await signup(formData.email, formData.password, {
+        name: formData.fullName,
+        role: 'student',
+        course: formData.program,
+        year: formData.academicYear
+      });
       
-      if (result.success) {
-        const user = result.user;
-        
-        // Create user document in Firestore
-        const userData = {
-          email: user.email,
-          displayName: formData.fullName,
-          role: 'student',
-          institutionName: formData.institutionName,
-          studentId: formData.studentId,
-          academicYear: formData.academicYear,
-          program: formData.program,
-          createdAt: new Date().toISOString()
-        };
-        
-        await createUser(user.uid, userData);
-        
+      if (error) {
+        setErrors({
+          submit: error.message || 'Registration failed. Please try again.'
+        });
+        setIsSubmitting(false);
+      } else {
         // Sign out the user so they need to log in manually
-        await signOutUser();
-        
-        // Clear any localStorage items
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('userEmail');
+        await logout();
         
         setIsSubmitting(false);
         
@@ -222,11 +210,6 @@ const RegistrationForm = () => {
             registrationSuccess: true
           } 
         });
-      } else {
-        setErrors({
-          submit: result.error || 'Registration failed. Please try again.'
-        });
-        setIsSubmitting(false);
       }
     } catch (error) {
       setErrors({

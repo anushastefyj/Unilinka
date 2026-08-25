@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthChange, getCurrentUser } from '../lib/firebaseAuth';
-import { getUser, createUser } from '../lib/firebaseDb';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
 
@@ -18,42 +17,104 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthChange(async (user) => {
-      if (user) {
-        setCurrentUser(user);
-        // Get user data from Firestore
-        const userDataResult = await getUser(user.uid);
-        if (userDataResult.success) {
-          setUserData(userDataResult.data);
-        } else {
-          // Create user document if it doesn't exist
-          await createUser(user.uid, {
-            email: user.email,
-            displayName: user.displayName || '',
-            role: 'student', // default role
-            createdAt: new Date().toISOString()
-          });
-          setUserData({
-            email: user.email,
-            displayName: user.displayName || '',
-            role: 'student'
-          });
-        }
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setCurrentUser(session.user);
+        fetchUserData(session.user.id);
       } else {
-        setCurrentUser(null);
-        setUserData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          setCurrentUser(session.user);
+          fetchUserData(session.user.id);
+        } else {
+          setCurrentUser(null);
+          setUserData(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
+
+  const fetchUserData = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching user data:', error);
+      } else if (data) {
+        setUserData(data);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (email, password) => {
+    return await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+  };
+
+  const signup = async (email, password, profileData) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) return { data, error };
+
+    // Insert the profile
+    if (data?.user) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          email: data.user.email,
+          name: profileData.name || data.user.email.split('@')[0],
+          role: profileData.role || 'student',
+          course: profileData.course || null,
+          year: profileData.year || null
+        });
+      
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        return { data, error: profileError };
+      }
+    }
+
+    return { data, error };
+  };
+
+  const logout = async () => {
+    return await supabase.auth.signOut();
+  };
 
   const value = {
     currentUser,
     userData,
     loading,
-    isAuthenticated: !!currentUser
+    isAuthenticated: !!currentUser,
+    login,
+    signup,
+    logout
   };
 
   return (
@@ -62,4 +123,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
