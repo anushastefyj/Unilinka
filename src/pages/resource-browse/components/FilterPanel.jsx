@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import Select from '../../../components/ui/Select';
 import { Checkbox } from '../../../components/ui/Checkbox';
+import { ACADEMIC_YEARS, SUBJECTS_BY_YEAR, getAllSubjects } from '../../../config/curriculum';
 
 const FilterPanel = ({ 
   filters, 
@@ -12,17 +13,20 @@ const FilterPanel = ({
   isOpen,
   onClose 
 }) => {
-  const subjects = [
-    { value: 'all', label: 'All Subjects' },
-    { value: 'Computer Science', label: 'Computer Science' },
-    { value: 'Mathematics', label: 'Mathematics' },
-    { value: 'Physics', label: 'Physics' },
-    { value: 'Chemistry', label: 'Chemistry' },
-    { value: 'Biology', label: 'Biology' },
-    { value: 'English Literature', label: 'English Literature' },
-    { value: 'History', label: 'History' },
-    { value: 'Economics', label: 'Economics' }
-  ];
+  const academicYears = ACADEMIC_YEARS;
+
+  const subjectOptions = useMemo(() => {
+    let list = [];
+    if (filters.academicYear === 'All Years') {
+      list = getAllSubjects();
+    } else {
+      list = SUBJECTS_BY_YEAR[filters.academicYear] || [];
+    }
+    return [
+      { value: 'all', label: 'All Subjects' },
+      ...list.map(s => ({ value: s, label: s }))
+    ];
+  }, [filters.academicYear]);
 
   const fileTypes = [
     { value: 'PDF', label: 'PDF Documents' },
@@ -41,6 +45,10 @@ const FilterPanel = ({
     { value: 'popular', label: 'Most Popular' },
     { value: 'title', label: 'Title (A-Z)' }
   ];
+
+  const handleYearChange = (value) => {
+    onFilterChange({ ...filters, academicYear: value, subject: 'all' });
+  };
 
   const handleSubjectChange = (value) => {
     onFilterChange({ ...filters, subject: value });
@@ -115,10 +123,20 @@ const FilterPanel = ({
         <div className="space-y-6">
           <div>
             <Select
+              label="Academic Year"
+              options={academicYears}
+              value={filters?.academicYear || 'All Years'}
+              onChange={handleYearChange}
+            />
+          </div>
+
+          <div>
+            <Select
               label="Subject"
-              options={subjects}
+              options={subjectOptions}
               value={filters?.subject || 'all'}
               onChange={handleSubjectChange}
+              searchable
             />
           </div>
 

@@ -12,6 +12,7 @@ import ActivityFeedItem from './components/ActivityFeedItem';
 import AuthenticationGuard from '../../components/ui/AuthenticationGuard';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { ACADEMIC_YEARS } from '../../config/curriculum';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -123,26 +124,15 @@ const StudentDashboard = () => {
     }
   ];
 
-  const subjectCategories = [
-    {
-      id: 'computer-science',
-      name: 'Object oriented programming',
-      description: 'Programming, algorithms, and structures',
-      icon: 'Monitor',
-      iconBg: 'bg-primary/20',
-      resourceCount: 156,
-      lastUpdated: '2 hours ago'
-    },
-    {
-      id: 'database-systems',
-      name: 'Fundamentals of database systems',
-      description: 'SQL, normalization, and DBMS',
-      icon: 'Database',
-      iconBg: 'bg-primary/20',
-      resourceCount: 124,
-      lastUpdated: '5 hours ago'
-    }
-  ];
+  const subjectCategories = ACADEMIC_YEARS.filter(y => y.id !== 'all').map((year, idx) => ({
+    id: year.id,
+    name: year.label,
+    description: `Curriculum and resources for ${year.label}`,
+    icon: idx === 0 ? 'BookOpen' : idx === 1 ? 'Monitor' : idx === 2 ? 'Database' : 'Cpu',
+    iconBg: 'bg-primary/20',
+    resourceCount: 'Explore', // We could fetch actual counts, but 'Explore' works well here too.
+    lastUpdated: 'Recently'
+  }));
 
   const activityFeed = [
     {
@@ -318,8 +308,8 @@ const StudentDashboard = () => {
                 {/* Enrolled Subjects */}
                 <section>
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold text-foreground">Enrolled Courses</h2>
-                    <button className="text-primary text-sm font-bold hover:underline">See all</button>
+                    <h2 className="text-xl font-bold text-foreground">Academic Years</h2>
+                    <button className="text-primary text-sm font-bold hover:underline" onClick={() => navigate('/resource-browse')}>See all</button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {subjectCategories.map(subject => (
