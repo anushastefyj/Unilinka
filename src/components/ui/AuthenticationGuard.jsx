@@ -28,7 +28,7 @@ const AuthenticationGuard = ({ children, requiredRoles = [] }) => {
   }
 
   if (!isAuthenticated) {
-    // return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   const userRole = userData?.role;
