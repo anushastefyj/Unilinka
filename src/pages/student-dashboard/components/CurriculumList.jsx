@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Icon from '../../../components/AppIcon';
 import RecentResourceCard from './RecentResourceCard';
 import { supabase } from '../../../lib/supabase';
@@ -39,7 +39,6 @@ const CurriculumList = ({ subjects, selectedYear }) => {
               fileType: r.file_type?.toUpperCase(),
               uploadDate: r.created_at,
               fileUrl: r.file_url,
-              uploaderId: r.uploader_id
             }))
           }));
         }
@@ -53,7 +52,7 @@ const CurriculumList = ({ subjects, selectedYear }) => {
 
   if (!subjects || subjects.length === 0) {
     return (
-      <div className="text-center py-12 bg-white rounded-3xl border border-[#E7E2D6]">
+      <div className="text-center py-12 bg-white rounded-[2rem] border border-[#E7E2D6]">
         <p className="text-[#5C5C5C]">No subjects found for this selection.</p>
       </div>
     );
@@ -101,7 +100,7 @@ const CurriculumList = ({ subjects, selectedYear }) => {
                   </div>
                 ) : subjectResources.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-sm text-[#5C5C5C]">No resources uploaded yet for this subject.</p>
+                    <p className="text-sm text-[#5C5C5C]">No resources available for this subject yet.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">

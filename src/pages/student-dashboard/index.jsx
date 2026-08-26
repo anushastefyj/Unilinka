@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import Icon from '../../components/AppIcon';
@@ -22,6 +22,8 @@ const StudentDashboard = () => {
   const { userData, logout } = useAuth();
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
   
   // Track State: 'home' | 'papers' | 'curriculum'
   const [currentTrack, setCurrentTrack] = useState('home');
@@ -41,25 +43,32 @@ const StudentDashboard = () => {
   useEffect(() => {
     fetchPlatformStats();
     fetchRecentResources();
+    
+    // Click outside handler for dropdown
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const fetchPlatformStats = async () => {
     setIsLoadingStats(true);
     try {
-      // In a real app, this would be an optimized RPC call. 
-      // Fetching total approved counts.
       const { data, error } = await supabase
         .from('resources')
-        .select('id, title') // minimize payload
+        .select('id, title') 
         .eq('status', 'approved');
 
       if (!error && data) {
-        // Mocking the split for demonstration
         const papers = data.filter(r => r.title.toLowerCase().includes('paper') || r.title.match(/(20\d{2})/)).length;
         setPlatformStats({
-          total: data.length || 142, // fallback for empty DB
-          papers: papers || 45,
-          curriculum: (data.length - papers) || 97
+          total: data.length || 0,
+          papers: papers || 0,
+          curriculum: (data.length - papers) || 0
         });
       }
     } catch (error) {
@@ -131,13 +140,6 @@ const StudentDashboard = () => {
     return [];
   };
 
-  // Track A: Papers -> Year -> Semester -> Branch -> Subject
-  // Track B: Curriculum -> Year -> Branch -> Semester -> Subject
-  // Since both fundamentally need Year, Branch, Semester, we just sequence the UI slightly differently if needed, 
-  // or use the same sequence but label it clearly. The prompt states:
-  // Track A: Year -> Semester -> Branch -> Subject
-  // Track B: Year -> Branch -> Semester -> Subject
-  
   const renderDrillDown = () => {
     if (!selectedYear) {
       return (
@@ -163,12 +165,6 @@ const StudentDashboard = () => {
     }
 
     if (currentTrack === 'papers') {
-      // Year -> Semester -> Branch -> Subject
-      if (!selectedSemester && !selectedBranch) {
-        // Technically semester is always selected by default ('Semester 1'), but we can force them to pick branch next.
-        // Actually, the prompt says Year -> Sem -> Branch. Let's show Sem tabs, then Branch grid.
-      }
-      
       if (!selectedBranch) {
         return (
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-4xl mx-auto text-center">
@@ -186,7 +182,6 @@ const StudentDashboard = () => {
         );
       }
 
-      // Final View for Papers
       return (
         <section className="animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-4xl mx-auto">
            <div className="text-center mb-8">
@@ -199,7 +194,6 @@ const StudentDashboard = () => {
     }
 
     if (currentTrack === 'curriculum') {
-      // Year -> Branch -> Semester -> Subject
       if (!selectedBranch) {
         return (
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-4xl mx-auto text-center">
@@ -215,7 +209,6 @@ const StudentDashboard = () => {
         );
       }
 
-      // Final View for Curriculum
       return (
         <section className="animate-in fade-in slide-in-from-bottom-4 duration-300 max-w-4xl mx-auto">
           <div className="text-center mb-8">
@@ -338,22 +331,12 @@ const StudentDashboard = () => {
               onClick={() => setIsSidebarOpen(false)} 
             />
           </nav>
-          
-          <div className="p-6 border-t border-[#E7E2D6]">
-            <button 
-              onClick={() => { logout(); navigate('/login'); }}
-              className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-[#5C5C5C] hover:bg-red-50 hover:text-red-700 transition-colors font-bold text-sm"
-            >
-              <Icon name="LogOut" size={20} />
-              <span>Logout</span>
-            </button>
-          </div>
         </aside>
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col h-screen overflow-hidden">
           {/* Header */}
-          <header className="h-[88px] bg-white border-b border-[#E7E2D6] flex items-center justify-between px-6 lg:px-10 z-10 flex-shrink-0 shadow-sm">
+          <header className="h-[88px] bg-white border-b border-[#E7E2D6] flex items-center justify-between px-6 lg:px-10 z-10 flex-shrink-0 shadow-sm relative">
             <div className="flex items-center gap-4 w-full">
               <button 
                 onClick={() => setIsSidebarOpen(true)}
@@ -362,7 +345,6 @@ const StudentDashboard = () => {
                 <Icon name="Menu" size={24} />
               </button>
               
-              {/* Hide top search if home, as home has a big search bar now */}
               <div className={`hidden md:block max-w-md w-full ml-4 transition-opacity ${currentTrack === 'home' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                 <div className="relative">
                   <Icon name="Search" size={16} className="absolute left-4 top-3 text-gray-400" />
@@ -377,14 +359,54 @@ const StudentDashboard = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-4 flex-shrink-0">
+            {/* Avatar Profile Dropdown */}
+            <div className="flex items-center gap-4 flex-shrink-0 relative" ref={dropdownRef}>
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-bold text-[#1C1C1C] leading-tight">{userData?.name || 'Student'}</p>
                 <p className="text-xs text-[#5C5C5C]">{userData?.course || 'Enrolled'}</p>
               </div>
-              <div className="w-12 h-12 rounded-full bg-[#EFE7D8] border-2 border-white shadow-sm flex items-center justify-center text-[#1F4D3A]">
+              <button 
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="w-12 h-12 rounded-full bg-[#EFE7D8] border-2 border-white shadow-sm flex items-center justify-center text-[#1F4D3A] hover:scale-105 transition-transform"
+              >
                 <Icon name="User" size={20} />
-              </div>
+              </button>
+              
+              {/* Dropdown Menu */}
+              {isProfileDropdownOpen && (
+                <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-[#E7E2D6] rounded-2xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="p-4 border-b border-[#E7E2D6] sm:hidden">
+                    <p className="text-sm font-bold text-[#1C1C1C] truncate">{userData?.name || 'Student'}</p>
+                    <p className="text-xs text-[#5C5C5C] truncate">{userData?.course || 'Enrolled'}</p>
+                  </div>
+                  <div className="p-2 flex flex-col gap-1">
+                    <Link 
+                      to="/profile" 
+                      onClick={() => setIsProfileDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-[#5C5C5C] hover:bg-[#FAF7F0] hover:text-[#1F4D3A] transition-colors"
+                    >
+                      <Icon name="User" size={16} />
+                      View Profile
+                    </Link>
+                    <Link 
+                      to="/settings"
+                      onClick={() => setIsProfileDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-[#5C5C5C] hover:bg-[#FAF7F0] hover:text-[#1F4D3A] transition-colors"
+                    >
+                      <Icon name="Settings" size={16} />
+                      Settings
+                    </Link>
+                    <div className="h-px bg-[#E7E2D6] my-1 mx-2" />
+                    <button 
+                      onClick={() => { logout(); navigate('/login'); }}
+                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-[#5C5C5C] hover:bg-red-50 hover:text-red-600 transition-colors w-full text-left"
+                    >
+                      <Icon name="LogOut" size={16} />
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </header>
 
@@ -406,9 +428,24 @@ const StudentDashboard = () => {
                   
                   {/* Platform Stats Row */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <StatsCard icon="Database" label="Total Resources" value={platformStats.total} />
-                    <StatsCard icon="FileText" label="Question Papers" value={platformStats.papers} />
-                    <StatsCard icon="BookOpen" label="Curriculum Docs" value={platformStats.curriculum} />
+                    <StatsCard 
+                      icon="Database" 
+                      label="Total Resources" 
+                      value={platformStats.total} 
+                      onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} 
+                    />
+                    <StatsCard 
+                      icon="FileText" 
+                      label="Question Papers" 
+                      value={platformStats.papers} 
+                      onClick={() => startTrack('papers')} 
+                    />
+                    <StatsCard 
+                      icon="BookOpen" 
+                      label="Curriculum Docs" 
+                      value={platformStats.curriculum} 
+                      onClick={() => startTrack('curriculum')} 
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
