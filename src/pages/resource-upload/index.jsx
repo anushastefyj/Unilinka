@@ -14,8 +14,8 @@ import { supabase } from '../../lib/supabase';
 
 const ResourceUpload = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, userData } = useAuth();
-  const userRole = userData?.role;
+  const { isAuthenticated, userData, currentUser } = useAuth();
+  const userRole = userData?.role || 'student';
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [metadata, setMetadata] = useState({
     title: '',
@@ -78,7 +78,8 @@ const ResourceUpload = () => {
         const file = fileObj.file;
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `${userData?.id || 'unknown'}/${fileName}`;
+        const userId = currentUser?.id || userData?.id || 'unknown';
+        const filePath = `${userId}/${fileName}`;
 
         // Upload to Storage
         const { error: uploadError } = await supabase.storage
@@ -100,7 +101,7 @@ const ResourceUpload = () => {
             description: metadata.description,
             academic_year: metadata.academicYear,
             subject: metadata.subject,
-            uploader_id: userData?.id,
+            uploader_id: currentUser?.id || userData?.id,
             file_url: publicUrl,
             file_type: file.type || fileExt,
             status: 'pending'
