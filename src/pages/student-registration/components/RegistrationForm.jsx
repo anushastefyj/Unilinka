@@ -14,7 +14,6 @@ const RegistrationForm = () => {
     password: '',
     confirmPassword: '',
     studentId: '',
-    mobileNumber: '',
     academicYear: '',
     program: '',
     termsAccepted: false
@@ -67,10 +66,6 @@ const RegistrationForm = () => {
         if (!value?.trim()) error = 'ID required';
         else if (!/^[a-zA-Z0-9]{10}$/.test(value?.trim())) error = 'Must be exactly 10 characters';
         break;
-      case 'mobileNumber':
-        if (!value?.trim()) error = 'Mobile required';
-        else if (!/^\d{10}$/.test(value?.trim())) error = 'Must be 10 digits';
-        break;
       case 'academicYear':
         if (!value) error = 'Select year';
         break;
@@ -85,8 +80,7 @@ const RegistrationForm = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e?.target;
-    if ((name === 'mobileNumber') && value && !/^\d*$/.test(value)) return; 
-    if ((name === 'studentId' || name === 'mobileNumber') && value.length > 10) return;
+    if (name === 'studentId' && value.length > 10) return;
     
     const newValue = type === 'checkbox' ? checked : value;
     setFormData(prev => ({ ...prev, [name]: newValue }));
@@ -134,8 +128,7 @@ const RegistrationForm = () => {
         role: 'student',
         course: formData.program,
         year: formData.academicYear,
-        regNumber: formData.studentId,
-        phoneNumber: formData.mobileNumber
+        regNumber: formData.studentId
       });
       
       if (error) {
@@ -188,17 +181,6 @@ const RegistrationForm = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <Input
-          label="Mobile Number"
-          type="text"
-          name="mobileNumber"
-          placeholder="10-digit number"
-          value={formData?.mobileNumber}
-          onChange={handleInputChange}
-          error={errors?.mobileNumber}
-          variant="underlined"
-          required
-        />
-        <Input
           label="Student ID"
           type="text"
           name="studentId"
@@ -206,6 +188,16 @@ const RegistrationForm = () => {
           value={formData?.studentId}
           onChange={handleInputChange}
           error={errors?.studentId}
+          variant="underlined"
+          required
+        />
+        <Select
+          label="Year"
+          placeholder="Select year"
+          options={academicYearOptions}
+          value={formData?.academicYear}
+          onChange={(value) => handleSelectChange('academicYear', value)}
+          error={errors?.academicYear}
           variant="underlined"
           required
         />
@@ -257,16 +249,6 @@ const RegistrationForm = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <Select
-          label="Year"
-          placeholder="Select year"
-          options={academicYearOptions}
-          value={formData?.academicYear}
-          onChange={(value) => handleSelectChange('academicYear', value)}
-          error={errors?.academicYear}
-          variant="underlined"
-          required
-        />
-        <Select
           label="Program"
           placeholder="Select program"
           options={programOptions}
@@ -276,21 +258,22 @@ const RegistrationForm = () => {
           variant="underlined"
           required
         />
-      </div>
-
-      <div className="flex items-center gap-2 mt-4 text-[#333]">
-        <input 
-          type="checkbox" 
-          id="termsReg" 
-          name="termsAccepted"
-          checked={formData.termsAccepted}
-          onChange={handleInputChange}
-          className="rounded text-[#135ea2] focus:ring-[#135ea2]" 
-          required 
-        />
-        <label htmlFor="termsReg" className="text-xs md:text-sm">
-          By Signing Up. I Agree with <a href="#" className="text-[#135ea2] font-semibold">Terms & Conditions</a>
-        </label>
+        <div className="flex items-end pb-2">
+          <div className="flex items-center gap-2 text-[#333]">
+            <input 
+              type="checkbox" 
+              id="termsReg" 
+              name="termsAccepted"
+              checked={formData.termsAccepted}
+              onChange={handleInputChange}
+              className="rounded text-[#135ea2] focus:ring-[#135ea2]" 
+              required 
+            />
+            <label htmlFor="termsReg" className="text-xs md:text-sm">
+              By Signing Up. I Agree with <a href="#" className="text-[#135ea2] font-semibold">Terms & Conditions</a>
+            </label>
+          </div>
+        </div>
       </div>
 
       {errors?.submit && (
@@ -300,7 +283,7 @@ const RegistrationForm = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-center gap-4 pt-6">
+      <div className="flex items-center justify-center gap-4 pt-4">
         <button
           type="submit"
           className="px-8 py-2 md:px-10 md:py-2.5 rounded-full bg-[#135ea2] text-white font-semibold shadow-md hover:bg-[#0f4b82] transition-colors flex items-center justify-center min-w-[120px]"
