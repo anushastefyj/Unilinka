@@ -91,7 +91,9 @@ export const AuthProvider = ({ children }) => {
           name: profileData.name || data.user.email.split('@')[0],
           role: profileData.role || 'student',
           course: profileData.course || null,
-          year: profileData.year || null
+          year: profileData.year || null,
+          reg_number: profileData.regNumber || null,
+          phone_number: profileData.phoneNumber || null
         });
       
       if (profileError) {
@@ -107,6 +109,23 @@ export const AuthProvider = ({ children }) => {
     return await supabase.auth.signOut();
   };
 
+  const sendPhoneOtp = async (phone) => {
+    // Ensures phone has country code if missing (defaulting to +1 for example, but ideally user provides it)
+    const formattedPhone = phone.startsWith('+') ? phone : `+1${phone}`;
+    return await supabase.auth.signInWithOtp({
+      phone: formattedPhone,
+    });
+  };
+
+  const verifyPhoneOtp = async (phone, token) => {
+    const formattedPhone = phone.startsWith('+') ? phone : `+1${phone}`;
+    return await supabase.auth.verifyOtp({
+      phone: formattedPhone,
+      token,
+      type: 'sms',
+    });
+  };
+
   const value = {
     currentUser,
     userData,
@@ -114,7 +133,9 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!currentUser,
     login,
     signup,
-    logout
+    logout,
+    sendPhoneOtp,
+    verifyPhoneOtp
   };
 
   return (

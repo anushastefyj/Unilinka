@@ -22,6 +22,7 @@ const Select = React.forwardRef(({
     loading = false,
     id,
     name,
+    variant = "default",
     onChange,
     onOpenChange,
     ...props
@@ -104,7 +105,8 @@ const Select = React.forwardRef(({
                 <label
                     htmlFor={selectId}
                     className={cn(
-                        "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2 block",
+                        "text-sm font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+                        variant === 'underlined' ? "text-[#333] mb-1 block" : "mb-2 block",
                         error ? "text-destructive" : "text-foreground"
                     )}
                 >
@@ -118,8 +120,10 @@ const Select = React.forwardRef(({
                     id={selectId}
                     type="button"
                     className={cn(
-                        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-white text-black px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                        error && "border-destructive focus:ring-destructive",
+                        variant === "underlined" 
+                            ? "flex h-10 w-full items-center justify-between border-0 border-b-2 border-slate-300 bg-transparent px-0 py-2 text-sm text-foreground ring-offset-background focus:outline-none focus:border-[#135ea2] disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                            : "flex h-10 w-full items-center justify-between rounded-md border border-input bg-white text-black px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                        error && (variant === "underlined" ? "border-destructive" : "border-destructive focus:ring-destructive"),
                         !hasValue && "text-muted-foreground"
                     )}
                     onClick={handleToggle}
