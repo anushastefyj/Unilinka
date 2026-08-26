@@ -11,15 +11,9 @@ const AuthLayout = ({ children, title }) => {
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-medium mb-6 tracking-wide">Welcome to</h2>
           
           <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-[280px] md:max-w-xs shadow-xl relative">
-            {/* Simple Unilinka Logo Representation */}
+            {/* Actual Unilinka Logo */}
             <div className="flex flex-col items-center justify-center">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-[#135ea2] rounded-full flex items-center justify-center mb-4 text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                </svg>
-              </div>
-              <h1 className="text-[#135ea2] text-2xl md:text-3xl font-bold tracking-wider mb-1">UNILINKA</h1>
-              <p className="text-emerald-500 text-xs md:text-sm font-semibold tracking-wide">Learn Together, Grow Together.</p>
+              <img src="/logo.jpg" alt="Unilinka Logo" className="w-full max-w-[200px] h-auto object-contain" />
             </div>
           </div>
         </div>
