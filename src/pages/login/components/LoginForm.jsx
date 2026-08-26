@@ -32,7 +32,7 @@ const LoginForm = ({ initialEmail = '' }) => {
     else if (!validateEmail(formData?.email)) newErrors.email = 'Valid email required';
 
     if (!formData?.studentId?.trim()) newErrors.studentId = 'Registration ID is required';
-    else if (!/^\d{10}$/.test(formData?.studentId?.trim())) newErrors.studentId = 'Must be exactly 10 digits';
+    else if (!/^[a-zA-Z0-9]{10}$/.test(formData?.studentId?.trim())) newErrors.studentId = 'Must be exactly 10 characters';
 
     if (!formData?.mobileNumber?.trim()) newErrors.mobileNumber = 'Mobile number is required';
     else if (!/^\d{10}$/.test(formData?.mobileNumber?.trim())) newErrors.mobileNumber = 'Must be exactly 10 digits';
@@ -43,7 +43,7 @@ const LoginForm = ({ initialEmail = '' }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e?.target;
-    if ((name === 'studentId' || name === 'mobileNumber' || name === 'otp') && value && !/^\d*$/.test(value)) return; 
+    if ((name === 'mobileNumber' || name === 'otp') && value && !/^\d*$/.test(value)) return; 
     if ((name === 'studentId' || name === 'mobileNumber') && value.length > 10) return;
     if (name === 'otp' && value.length > 6) return;
 

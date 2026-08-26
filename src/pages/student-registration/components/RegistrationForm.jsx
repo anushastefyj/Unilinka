@@ -65,7 +65,7 @@ const RegistrationForm = () => {
         break;
       case 'studentId':
         if (!value?.trim()) error = 'ID required';
-        else if (!/^\d{10}$/.test(value?.trim())) error = 'Must be 10 digits';
+        else if (!/^[a-zA-Z0-9]{10}$/.test(value?.trim())) error = 'Must be exactly 10 characters';
         break;
       case 'mobileNumber':
         if (!value?.trim()) error = 'Mobile required';
@@ -85,7 +85,7 @@ const RegistrationForm = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e?.target;
-    if ((name === 'studentId' || name === 'mobileNumber') && value && !/^\d*$/.test(value)) return; 
+    if ((name === 'mobileNumber') && value && !/^\d*$/.test(value)) return; 
     if ((name === 'studentId' || name === 'mobileNumber') && value.length > 10) return;
     
     const newValue = type === 'checkbox' ? checked : value;
