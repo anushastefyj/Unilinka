@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import StudentLayout from '../../components/layout/StudentLayout';
 import AuthenticationGuard from '../../components/ui/AuthenticationGuard';

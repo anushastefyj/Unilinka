@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import Icon from './AppIcon';
+import Icon from '../AppIcon';
 
 const ResourcePreviewModal = ({ resource, onClose }) => {
   useEffect(() => {
