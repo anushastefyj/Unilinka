@@ -4,6 +4,7 @@ import RecentResourceCard from './RecentResourceCard';
 import { supabase } from '../../../lib/supabase';
 import ReportIssueModal from '../../../components/ui/ReportIssueModal';
 import JSZip from 'jszip';
+import { getSubjectQueryList } from '../../../config/curriculum';
 
 // Mock topics since they aren't in the DB currently
 const getMockTopics = (subject) => [
@@ -68,11 +69,13 @@ const CurriculumList = ({ subjects, selectedYear }) => {
     if (!resources[subject]) {
       setLoading(prev => ({ ...prev, [subject]: true }));
       try {
+        const querySubjects = getSubjectQueryList(subject);
+        
         const { data, error } = await supabase
           .from('resources')
           .select('*')
           .eq('status', 'approved')
-          .eq('subject', subject)
+          .in('subject', querySubjects)
           .order('created_at', { ascending: false });
           
         if (!error) {

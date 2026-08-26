@@ -1,5 +1,5 @@
 import React from 'react';
-import Icon from './AppIcon';
+import Icon from '../../../components/AppIcon';
 
 // Mock Frequently Asked Topics Generator
 const getMockFrequentlyAsked = (subject) => [

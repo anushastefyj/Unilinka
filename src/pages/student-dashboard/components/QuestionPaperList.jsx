@@ -6,6 +6,7 @@ import ReportIssueModal from '../../../components/ui/ReportIssueModal';
 import JSZip from 'jszip';
 import FrequentlyAskedPanel from './FrequentlyAskedPanel';
 import SubjectAISummary from './SubjectAISummary';
+import { getSubjectQueryList } from '../../../config/curriculum';
 
 const QuestionPaperList = ({ subjects, selectedYear }) => {
   const [expandedSubject, setExpandedSubject] = useState(null);
@@ -33,11 +34,13 @@ const QuestionPaperList = ({ subjects, selectedYear }) => {
     if (!resources[subject]) {
       setLoading(prev => ({ ...prev, [subject]: true }));
       try {
+        const querySubjects = getSubjectQueryList(subject);
+        
         const { data, error } = await supabase
           .from('resources')
           .select('*')
           .eq('status', 'approved')
-          .eq('subject', subject)
+          .in('subject', querySubjects)
           .like('title', '%Paper%') // Basic filter for demo
           .order('created_at', { ascending: false });
           
