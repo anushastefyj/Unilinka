@@ -6,55 +6,145 @@ export const ACADEMIC_YEARS = [
   { id: 'year-4', label: 'Year 4', value: 'Year 4' }
 ];
 
+export const BRANCHES = [
+  { id: 'cse', label: 'Computer Science (CSE)', value: 'CSE' },
+  { id: 'ece', label: 'Electronics & Comm (ECE)', value: 'ECE' },
+  { id: 'me', label: 'Mechanical Eng (ME)', value: 'ME' },
+  { id: 'ce', label: 'Civil Eng (CE)', value: 'CE' }
+];
+
+export const SEMESTERS = [
+  { id: 'sem-1', label: 'Semester 1', value: 'Semester 1' },
+  { id: 'sem-2', label: 'Semester 2', value: 'Semester 2' }
+];
+
+// Hierarchical Curriculum Data Structure:
+// Year -> Branch -> Semester -> [Subjects]
+export const HIERARCHICAL_CURRICULUM = {
+  'Year 1': {
+    'CSE': {
+      'Semester 1': [
+        'Engineering Mathematics-I',
+        'Engineering Physics',
+        'Basic Electrical Engineering',
+        'Engineering Physics Lab',
+        'Basic Electrical Engineering Lab'
+      ],
+      'Semester 2': [
+        'Engineering Mathematics-II',
+        'Engineering Chemistry',
+        'Programming for Problem Solving',
+        'Engineering Mechanics',
+        'Programming Lab',
+        'Engineering Graphics & Design'
+      ]
+    },
+    'ECE': {
+      'Semester 1': ['Engineering Mathematics-I', 'Engineering Physics', 'Basic Electrical Engineering'],
+      'Semester 2': ['Engineering Mathematics-II', 'Engineering Chemistry', 'Programming for Problem Solving']
+    },
+    'ME': {
+      'Semester 1': ['Engineering Mathematics-I', 'Engineering Physics', 'Engineering Mechanics'],
+      'Semester 2': ['Engineering Mathematics-II', 'Engineering Chemistry', 'Engineering Graphics & Design']
+    },
+    'CE': {
+      'Semester 1': ['Engineering Mathematics-I', 'Engineering Physics', 'Environment & Ecology'],
+      'Semester 2': ['Engineering Mathematics-II', 'Engineering Chemistry', 'Engineering Mechanics']
+    }
+  },
+  'Year 2': {
+    'CSE': {
+      'Semester 1': [
+        'Discrete Mathematics',
+        'Data Structures',
+        'Digital Electronics',
+        'Data Structures Lab',
+        'Digital Electronics Lab'
+      ],
+      'Semester 2': [
+        'Computer Organization & Architecture',
+        'Operating Systems',
+        'Design & Analysis of Algorithms',
+        'Database Management Systems (DBMS)',
+        'Operating Systems Lab',
+        'DBMS Lab'
+      ]
+    },
+    'ECE': {
+      'Semester 1': ['Analog Circuits', 'Signals and Systems', 'Network Theory'],
+      'Semester 2': ['Microprocessors', 'Control Systems', 'Digital Signal Processing']
+    },
+    'ME': {
+      'Semester 1': ['Thermodynamics', 'Fluid Mechanics', 'Material Science'],
+      'Semester 2': ['Kinematics of Machinery', 'Applied Thermodynamics', 'Manufacturing Processes']
+    },
+    'CE': {
+      'Semester 1': ['Solid Mechanics', 'Surveying', 'Fluid Mechanics'],
+      'Semester 2': ['Structural Analysis', 'Geotechnical Engineering', 'Environmental Engineering']
+    }
+  },
+  'Year 3': {
+    'CSE': {
+      'Semester 1': [
+        'Computer Networks',
+        'Software Engineering',
+        'Compiler Design',
+        'Formal Language & Automata Theory'
+      ],
+      'Semester 2': [
+        'Artificial Intelligence',
+        'Machine Learning',
+        'Computer Graphics',
+        'AI & ML Lab',
+        'Cloud Computing'
+      ]
+    },
+    'ECE': {
+      'Semester 1': ['Electromagnetic Waves', 'Computer Architecture', 'Digital Communication'],
+      'Semester 2': ['VLSI Design', 'Antennas and Propagation', 'Information Theory']
+    },
+    'ME': {
+      'Semester 1': ['Dynamics of Machinery', 'Heat Transfer', 'Design of Machine Elements I'],
+      'Semester 2': ['Design of Machine Elements II', 'Operations Research', 'CAD/CAM']
+    },
+    'CE': {
+      'Semester 1': ['Design of Concrete Structures', 'Transportation Engineering', 'Hydrology'],
+      'Semester 2': ['Design of Steel Structures', 'Construction Management', 'Foundation Engineering']
+    }
+  },
+  'Year 4': {
+    'CSE': {
+      'Semester 1': [
+        'Information Security',
+        'Data Mining',
+        'Industrial Training'
+      ],
+      'Semester 2': [
+        'Major Project Phase-I',
+        'Entrepreneurship & Management'
+      ]
+    },
+    'ECE': {
+      'Semester 1': ['Wireless Communication', 'Optical Networks', 'Industrial Training'],
+      'Semester 2': ['Major Project Phase-I', 'Entrepreneurship & Management']
+    },
+    'ME': {
+      'Semester 1': ['Automobile Engineering', 'Power Plant Engineering', 'Industrial Training'],
+      'Semester 2': ['Major Project Phase-I', 'Entrepreneurship & Management']
+    },
+    'CE': {
+      'Semester 1': ['Estimation and Costing', 'Bridge Engineering', 'Industrial Training'],
+      'Semester 2': ['Major Project Phase-I', 'Entrepreneurship & Management']
+    }
+  }
+};
+
+// Maintained for backward compatibility for parts of the app not yet migrated
 export const SUBJECTS_BY_YEAR = {
-  'Year 1': [
-    'Engineering Mathematics-I',
-    'Engineering Physics',
-    'Basic Electrical Engineering',
-    'Environment & Ecology',
-    'Engineering Physics Lab',
-    'Basic Electrical Engineering Lab',
-    'Workshop Practice',
-    'Engineering Mathematics-II',
-    'Engineering Chemistry',
-    'Programming for Problem Solving',
-    'Engineering Mechanics',
-    'Engineering Chemistry Lab',
-    'Programming Lab',
-    'Engineering Graphics & Design'
-  ],
-  'Year 2': [
-    'Discrete Mathematics',
-    'Data Structures',
-    'Digital Electronics',
-    'Computer Organization & Architecture',
-    'Data Structures Lab',
-    'Digital Electronics Lab',
-    'Operating Systems',
-    'Design & Analysis of Algorithms',
-    'Database Management Systems (DBMS)',
-    'Formal Language & Automata Theory',
-    'Operating Systems Lab',
-    'Algorithms Lab',
-    'DBMS Lab'
-  ],
-  'Year 3': [
-    'Computer Networks',
-    'Software Engineering',
-    'Compiler Design',
-    'Artificial Intelligence',
-    'Machine Learning',
-    'Computer Graphics',
-    'AI & ML Lab',
-    'Computer Graphics Lab',
-    'Cloud Computing',
-    'Information Security'
-  ],
-  'Year 4': [
-    'Industrial Training',
-    'Major Project Phase-I',
-    'Entrepreneurship & Management'
-  ]
+  'Year 1': [...HIERARCHICAL_CURRICULUM['Year 1']['CSE']['Semester 1'], ...HIERARCHICAL_CURRICULUM['Year 1']['CSE']['Semester 2']],
+  'Year 2': [...HIERARCHICAL_CURRICULUM['Year 2']['CSE']['Semester 1'], ...HIERARCHICAL_CURRICULUM['Year 2']['CSE']['Semester 2']],
+  'Year 3': [...HIERARCHICAL_CURRICULUM['Year 3']['CSE']['Semester 1'], ...HIERARCHICAL_CURRICULUM['Year 3']['CSE']['Semester 2']],
+  'Year 4': [...HIERARCHICAL_CURRICULUM['Year 4']['CSE']['Semester 1'], ...HIERARCHICAL_CURRICULUM['Year 4']['CSE']['Semester 2']],
 };
 
 // Helper function to get all flat subjects across years (useful for "All Years" filter)

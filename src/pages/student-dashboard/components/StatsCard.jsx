@@ -1,32 +1,18 @@
 import React from 'react';
 import Icon from '../../../components/AppIcon';
 
-const StatsCard = ({ icon, label, value, trend, trendValue }) => {
-  // Determine if it's the "purple" highlighted card based on the label, or just keep them all clean
-  const isPrimary = label.toLowerCase().includes('download');
-
+const StatsCard = ({ icon, label, value }) => {
   return (
-    <div className={`
-      relative overflow-hidden border rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1
-      ${isPrimary ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30' : 'bg-white border-border text-foreground shadow-sm'}
-    `}>
-      <div className="flex items-center justify-between mb-4">
-        <div className={`p-4 rounded-2xl ${isPrimary ? 'bg-white/20' : 'bg-primary/10'}`}>
-          <Icon name={icon} size={28} className={isPrimary ? 'text-white' : 'text-primary'} />
+    <div className="bg-white border border-[#E7E2D6] rounded-full py-3 px-4 sm:px-6 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-[#EFE7D8] flex items-center justify-center text-[#1F4D3A] flex-shrink-0">
+          <Icon name={icon} size={20} />
         </div>
+        <span className="text-sm font-semibold text-[#5C5C5C]">{label}</span>
       </div>
-      
-      <div className="space-y-1 relative z-10">
-        <p className={`text-4xl font-black ${isPrimary ? 'text-white' : 'text-foreground'}`}>{value}</p>
-        <p className={`text-sm font-medium ${isPrimary ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{label}</p>
+      <div className="pl-4">
+        <span className="text-xl sm:text-2xl font-bold text-[#1C1C1C]">{value}</span>
       </div>
-
-      {/* Decorative Icon Background */}
-      <Icon 
-        name={icon} 
-        size={120} 
-        className={`absolute -right-4 -bottom-8 opacity-5 pointer-events-none ${isPrimary ? 'text-white' : 'text-primary'}`} 
-      />
     </div>
   );
 };

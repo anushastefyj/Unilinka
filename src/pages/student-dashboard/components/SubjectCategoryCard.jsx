@@ -1,48 +1,34 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 
-const SubjectCategoryCard = ({ subject }) => {
-  const navigate = useNavigate();
-
-  const handleBrowse = () => {
-    navigate('/resource-browse', { state: { selectedSubject: subject?.id } });
-  };
-
+const SubjectCategoryCard = ({ year, isCurrentYear, onClick }) => {
   return (
-    <div className="bg-primary/5 border border-primary/20 rounded-3xl p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden">
-      <div className="flex items-start gap-4 mb-6">
-        <div className="bg-primary/20 rounded-2xl p-4 flex-shrink-0 transition-transform group-hover:scale-110">
-          <Icon name={subject?.icon} size={28} className="text-primary" />
+    <button 
+      onClick={onClick}
+      className="w-full text-left bg-white border border-[#E7E2D6] rounded-[1.5rem] p-5 transition-all duration-200 hover:shadow-md hover:border-[#1F4D3A]/30 group flex items-start justify-between"
+    >
+      <div className="flex items-start gap-4">
+        <div className={`p-3 rounded-xl flex items-center justify-center bg-[#EFE7D8] text-[#1F4D3A]`}>
+          <Icon name={year.icon || 'Book'} size={24} />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-foreground mb-1 line-clamp-2 leading-tight">
-            {subject?.name}
-          </h3>
-          <div className="bg-primary/10 inline-flex items-center rounded-full px-3 py-1 mt-1">
-            <span className="text-xs font-bold text-primary">
-              {typeof subject?.resourceCount === 'number' 
-                ? `${subject?.resourceCount} resources` 
-                : subject?.resourceCount}
-            </span>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-lg font-bold text-[#1C1C1C] group-hover:text-[#1F4D3A] transition-colors">
+              {year.label}
+            </h3>
+            {isCurrentYear && (
+              <span className="bg-[#1F4D3A]/10 text-[#1F4D3A] text-xs font-bold px-2 py-0.5 rounded-full">
+                Your Year
+              </span>
+            )}
           </div>
+          <p className="text-sm text-[#5C5C5C] mb-1">{year.description}</p>
         </div>
       </div>
-      
-      <button 
-        onClick={handleBrowse}
-        className="w-full bg-primary text-white font-semibold py-3 rounded-xl shadow-sm shadow-primary/30 hover:bg-primary/90 transition-colors"
-      >
-        View
-      </button>
-
-      {/* Decorative background element */}
-      <Icon 
-        name="PieChart" 
-        size={100} 
-        className="absolute -right-6 -bottom-6 text-primary opacity-5 pointer-events-none" 
-      />
-    </div>
+      <div className="pt-2 text-gray-300 group-hover:text-[#1F4D3A] transition-colors">
+        <Icon name="ChevronRight" size={20} />
+      </div>
+    </button>
   );
 };
 

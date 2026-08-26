@@ -1,8 +1,5 @@
 import React from 'react';
-
 import Icon from '../../../components/AppIcon';
-import Button from '../../../components/ui/Button';
-
 
 const ResourceCard = ({ resource, onDownload, onViewDetails }) => {
   const getFileIcon = (fileType) => {
@@ -11,12 +8,21 @@ const ResourceCard = ({ resource, onDownload, onViewDetails }) => {
       'PPT': 'Presentation',
       'DOC': 'FileType'
     };
-    return iconMap?.[fileType] || 'File';
+    return iconMap[fileType] || 'File';
+  };
+
+  const getFileColor = (fileType) => {
+    const colorMap = {
+      'PDF': 'bg-red-50 text-red-600 border-red-200',
+      'PPT': 'bg-amber-50 text-amber-600 border-amber-200',
+      'DOC': 'bg-blue-50 text-blue-600 border-blue-200'
+    };
+    return colorMap[fileType] || 'bg-gray-50 text-gray-600 border-gray-200';
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date?.toLocaleDateString('en-US', { 
+    return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
       year: 'numeric' 
@@ -24,80 +30,65 @@ const ResourceCard = ({ resource, onDownload, onViewDetails }) => {
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 md:p-6 hover:shadow-academic-md transition-academic">
-      <div className="flex items-start gap-3 md:gap-4 mb-4">
-        <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-          <Icon name={getFileIcon(resource?.fileType)} size={24} className="text-primary" />
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-md transition-shadow group flex flex-col h-full">
+      <div className="flex items-start gap-4 mb-3">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center border flex-shrink-0 ${getFileColor(resource?.fileType)}`}>
+          <Icon name={getFileIcon(resource?.fileType)} size={24} />
         </div>
         
         <div className="flex-1 min-w-0">
-          <h3 className="text-base md:text-lg font-semibold text-foreground mb-1 line-clamp-2">
+          <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-2 group-hover:text-[#135ea2] transition-colors cursor-pointer" onClick={() => onViewDetails(resource)}>
             {resource?.title}
           </h3>
-          <p className="text-xs md:text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500 truncate">
             {resource?.subject}
           </p>
         </div>
       </div>
-      <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+      
+      <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow">
         {resource?.description}
       </p>
+      
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded-md text-xs font-medium">
-          <Icon name="FileType" size={14} />
-          {resource?.fileType}
+        <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-100 border border-gray-200 rounded-md text-xs font-medium text-gray-700">
+          <Icon name="Calendar" size={14} />
+          {resource?.academicYear}
         </span>
-        <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded-md text-xs font-medium">
-          <Icon name="GraduationCap" size={14} />
-          {resource?.academicLevel}
+        <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-100 border border-gray-200 rounded-md text-xs font-medium text-gray-700">
+          <Icon name="User" size={14} />
+          {resource?.uploadedBy}
         </span>
-        {resource?.isFeatured && (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-accent/10 text-accent rounded-md text-xs font-medium">
-            <Icon name="Star" size={14} />
-            Featured
-          </span>
-        )}
       </div>
-      <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
-        <div className="flex items-center gap-4 text-xs md:text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Icon name="Calendar" size={16} />
+      
+      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+        <div className="flex items-center gap-4 text-xs font-medium text-gray-500">
+          <span className="flex items-center gap-1.5">
+            <Icon name="Clock" size={14} />
             {formatDate(resource?.uploadDate)}
           </span>
-          <span className="flex items-center gap-1">
-            <Icon name="Download" size={16} />
+          <span className="flex items-center gap-1.5">
+            <Icon name="Download" size={14} />
             {resource?.downloadCount}
           </span>
         </div>
         
-        {resource?.facultyVerified && (
-          <div className="flex items-center gap-1 text-xs text-success">
-            <Icon name="BadgeCheck" size={16} />
-            <span className="hidden sm:inline">Verified</span>
-          </div>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          iconName="Eye"
-          iconPosition="left"
-          onClick={() => onViewDetails(resource)}
-          className="flex-1"
-        >
-          Details
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          iconName="Download"
-          iconPosition="left"
-          onClick={() => onDownload(resource)}
-          className="flex-1"
-        >
-          Download
-        </Button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onViewDetails(resource)}
+            className="p-2 text-gray-400 hover:text-[#135ea2] hover:bg-[#135ea2]/10 rounded-lg transition-colors"
+            aria-label="View Details"
+          >
+            <Icon name="Eye" size={18} />
+          </button>
+          <button
+            onClick={() => onDownload(resource)}
+            className="p-2 text-gray-400 hover:text-[#135ea2] hover:bg-[#135ea2]/10 rounded-lg transition-colors"
+            aria-label="Download"
+          >
+            <Icon name="DownloadCloud" size={18} />
+          </button>
+        </div>
       </div>
     </div>
   );
