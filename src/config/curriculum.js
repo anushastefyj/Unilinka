@@ -156,3 +156,22 @@ export const getAllSubjects = () => {
     ...SUBJECTS_BY_YEAR['Year 4']
   ];
 };
+
+// Admin-side mapping for Common Subject Merge
+// This maps a shared subject name to all the specific branch-siloed names that should be merged.
+export const COMMON_SUBJECT_MAPPINGS = {
+  'Engineering Mathematics-I': ['Engineering Mathematics-I', 'Mathematics I (CSE)', 'Mathematics I (ECE)'],
+  'Engineering Mathematics-II': ['Engineering Mathematics-II', 'Mathematics II (CSE)', 'Mathematics II (ECE)'],
+  'Engineering Physics': ['Engineering Physics', 'Physics (CSE)', 'Physics (ECE)'],
+  'Engineering Chemistry': ['Engineering Chemistry', 'Chemistry (CSE)', 'Chemistry (ECE)'],
+  'Basic Electrical Engineering': ['Basic Electrical Engineering', 'BEE (CSE)', 'BEE (ECE)'],
+  'Programming for Problem Solving': ['Programming for Problem Solving', 'PPS (CSE)', 'PPS (ECE)']
+};
+
+// Helper function to return the array of subjects to query for, supporting merged subjects
+export const getSubjectQueryList = (subjectName) => {
+  if (COMMON_SUBJECT_MAPPINGS[subjectName]) {
+    return COMMON_SUBJECT_MAPPINGS[subjectName];
+  }
+  return [subjectName];
+};

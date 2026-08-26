@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import Icon from '../../../components/AppIcon';
 import ResourcePreviewModal from '../../../components/ui/ResourcePreviewModal';
+import ReportIssueModal from '../../../components/ui/ReportIssueModal';
 
 const RecentResourceCard = ({ resource }) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   const getFileIcon = (type) => {
     const icons = {
@@ -79,6 +81,13 @@ const RecentResourceCard = ({ resource }) => {
           
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button 
+              onClick={() => setIsReportOpen(true)}
+              className="w-10 h-10 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors flex items-center justify-center flex-shrink-0"
+              title="Report Issue"
+            >
+              <Icon name="Flag" size={16} />
+            </button>
+            <button 
               onClick={() => setIsPreviewOpen(true)}
               disabled={!resource.fileUrl}
               className="w-12 h-10 bg-[#FAF7F0] hover:bg-[#EFE7D8] text-[#1F4D3A] rounded-xl transition-colors border border-[#E7E2D6] flex items-center justify-center flex-shrink-0 disabled:opacity-50"
@@ -104,6 +113,13 @@ const RecentResourceCard = ({ resource }) => {
         <ResourcePreviewModal 
           resource={resource} 
           onClose={() => setIsPreviewOpen(false)} 
+        />
+      )}
+      
+      {isReportOpen && (
+        <ReportIssueModal 
+          resource={resource}
+          onClose={() => setIsReportOpen(false)}
         />
       )}
     </>

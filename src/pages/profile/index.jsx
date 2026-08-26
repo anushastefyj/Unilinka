@@ -9,29 +9,16 @@ import RecentResourceCard from '../student-dashboard/components/RecentResourceCa
 const ProfilePage = () => {
   const { userData } = useAuth();
   
-  // Mock data for downloads since this isn't strictly tracked in the DB for users yet
-  const mockDownloads = [
-    {
-      id: 1,
-      title: "Data Structures & Algorithms - End Semester",
-      description: "Previous Year Question Paper for DSA",
-      subject: "Data Structures",
-      academicYear: "Year 2",
-      fileType: "PDF",
-      uploadDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      fileUrl: "#",
-    },
-    {
-      id: 2,
-      title: "Computer Networks Unit 1 Notes",
-      description: "Complete notes for Unit 1",
-      subject: "Computer Networks",
-      academicYear: "Year 3",
-      fileType: "DOCX",
-      uploadDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      fileUrl: "#",
+  const [downloadHistory, setDownloadHistory] = useState([]);
+
+  useEffect(() => {
+    try {
+      const history = JSON.parse(localStorage.getItem('unilinka_downloads') || '[]');
+      setDownloadHistory(history);
+    } catch (e) {
+      console.error(e);
     }
-  ];
+  }, []);
 
   return (
     <AuthenticationGuard requiredRoles={['student']}>
@@ -101,9 +88,15 @@ const ProfilePage = () => {
             </div>
             
             <div className="space-y-4">
-              {mockDownloads.map(resource => (
-                <RecentResourceCard key={resource.id} resource={resource} />
-              ))}
+              {downloadHistory.length === 0 ? (
+                <div className="text-center py-8 bg-white border border-[#E7E2D6] rounded-2xl">
+                  <p className="text-[#5C5C5C] text-sm">You haven't downloaded any resources yet.</p>
+                </div>
+              ) : (
+                downloadHistory.map(resource => (
+                  <RecentResourceCard key={resource.id} resource={resource} />
+                ))
+              )}
             </div>
           </div>
 
