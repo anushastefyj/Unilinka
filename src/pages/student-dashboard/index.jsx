@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import Icon from '../../components/AppIcon';
 import StatsCard from './components/StatsCard';
@@ -12,51 +12,63 @@ import QuestionPaperList from './components/QuestionPaperList';
 import HeroWelcomeCard from './components/HeroWelcomeCard';
 import SearchBar from './components/SearchBar';
 import AuthenticationGuard from '../../components/ui/AuthenticationGuard';
+import StudentLayout from '../../components/layout/StudentLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { ACADEMIC_YEARS, BRANCHES, HIERARCHICAL_CURRICULUM } from '../../config/curriculum';
 
 const StudentDashboard = () => {
-  const navigate = useNavigate();
+  const { userData } = useAuth();
   const location = useLocation();
-  const { userData, logout } = useAuth();
-  
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
   
   // Track State: 'home' | 'papers' | 'curriculum'
-  const [currentTrack, setCurrentTrack] = useState('home');
+  const [currentTrack, setCurrentTrack] = useState(() => {
+    if (location.pathname === '/question-papers') return 'papers';
+    if (location.pathname === '/curriculum') return 'curriculum';
+    return 'home';
+  });
   
-  // Drill-Down State (shared logic but different presentation based on track)
+  // Drill-Down State 
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [selectedSemester, setSelectedSemester] = useState('Semester 1');
   
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Advanced Features State
+  const [lastVisited, setLastVisited] = useState(null);
+
   // Platform Stats & Resources
   const [platformStats, setPlatformStats] = useState({ total: 0, papers: 0, curriculum: 0 });
   const [recentResources, setRecentResources] = useState([]);
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  useEffect(() => {
+    if (location.pathname === '/question-papers') setCurrentTrack('papers');
+    else if (location.pathname === '/curriculum') setCurrentTrack('curriculum');
+    else setCurrentTrack('home');
+    
+    // Reset drill-down state on route change
+    setSelectedYear(null);
+    setSelectedBranch(null);
+    setSearchQuery('');
+    
+    // Check last visited
+    const storedLastVisited = localStorage.getItem('unilinka_last_visited');
+    if (storedLastVisited) {
+      try {
+        setLastVisited(JSON.parse(storedLastVisited));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     fetchPlatformStats();
     fetchRecentResources();
-    
-    // Click outside handler for dropdown
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsProfileDropdownOpen(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const fetchPlatformStats = async () => {
-    setIsLoadingStats(true);
     try {
       const { data, error } = await supabase
         .from('resources')
@@ -73,8 +85,6 @@ const StudentDashboard = () => {
       }
     } catch (error) {
       console.error("Error fetching stats:", error);
-    } finally {
-      setIsLoadingStats(false);
     }
   };
 
@@ -103,21 +113,6 @@ const StudentDashboard = () => {
       console.error("Error fetching recent resources:", error);
     }
   };
-
-  const NavItem = ({ icon, label, path, isActive, onClick }) => (
-    <Link 
-      to={path} 
-      onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-bold text-sm ${
-        isActive 
-          ? 'bg-[#1F4D3A] text-white shadow-sm' 
-          : 'text-[#5C5C5C] hover:bg-[#FAF7F0] hover:text-[#1C1C1C]'
-      }`}
-    >
-      <Icon name={icon} size={20} className={isActive ? 'text-[#EFE7D8]' : 'text-[#5C5C5C]'} />
-      <span>{label}</span>
-    </Link>
-  );
 
   const startTrack = (track) => {
     setCurrentTrack(track);
@@ -232,7 +227,7 @@ const StudentDashboard = () => {
     const trackName = currentTrack === 'papers' ? 'Question Papers' : 'Curriculum';
     
     return (
-      <div className="flex items-center gap-2 text-sm font-bold text-[#5C5C5C] bg-white py-3 px-6 rounded-full border border-[#E7E2D6] shadow-sm w-fit sticky top-0 z-20 overflow-x-auto whitespace-nowrap">
+      <div className="flex items-center gap-2 text-sm font-bold text-[#5C5C5C] bg-white py-3 px-6 rounded-full border border-[#E7E2D6] shadow-sm w-fit sticky top-0 z-20 overflow-x-auto whitespace-nowrap mb-10">
         <button onClick={resetToHome} className="hover:text-[#1F4D3A] transition-colors">
           Dashboard
         </button>
@@ -275,221 +270,136 @@ const StudentDashboard = () => {
     );
   };
 
+  const headerSearch = (
+    <div className={`hidden md:block max-w-md w-full ml-4 transition-opacity ${currentTrack === 'home' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div className="relative">
+        <Icon name="Search" size={16} className="absolute left-4 top-3 text-gray-400" />
+        <input 
+          type="text" 
+          placeholder="Quick search..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-[#FAF7F0] border border-[#E7E2D6] rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-[#1F4D3A]/30"
+        />
+      </div>
+    </div>
+  );
+
   return (
     <AuthenticationGuard requiredRoles={['student']}>
       <Helmet>
         <title>Dashboard - Unilinka</title>
       </Helmet>
       
-      <div className="flex h-screen bg-[#FAF7F0] overflow-hidden font-sans text-[#1C1C1C]">
+      <StudentLayout headerContent={headerSearch}>
+        {getBreadcrumbs()}
         
-        {isSidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40 lg:hidden transition-opacity"
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
-
-        {/* Sidebar */}
-        <aside className={`
-          fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-[#E7E2D6]
-          transform transition-transform duration-300 ease-in-out
-          flex flex-col
-          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}>
-          <div className="h-[88px] flex items-center px-8 border-b border-[#E7E2D6] cursor-pointer" onClick={resetToHome}>
-            <h1 className="text-2xl font-bold text-[#1F4D3A] tracking-wider font-serif">UNILINKA</h1>
-          </div>
-          
-          <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
-            <NavItem 
-              icon="LayoutDashboard" 
-              label="Dashboard Home" 
-              path="/student-dashboard" 
-              isActive={currentTrack === 'home'} 
-              onClick={(e) => { e.preventDefault(); resetToHome(); setIsSidebarOpen(false); }} 
-            />
-            <NavItem 
-              icon="FileText" 
-              label="Question Papers" 
-              path="/student-dashboard" 
-              isActive={currentTrack === 'papers'} 
-              onClick={(e) => { e.preventDefault(); startTrack('papers'); setIsSidebarOpen(false); }} 
-            />
-            <NavItem 
-              icon="BookOpen" 
-              label="Curriculum" 
-              path="/student-dashboard" 
-              isActive={currentTrack === 'curriculum'} 
-              onClick={(e) => { e.preventDefault(); startTrack('curriculum'); setIsSidebarOpen(false); }} 
-            />
-            <NavItem 
-              icon="Search" 
-              label="Browse & Search" 
-              path="/resource-browse" 
-              isActive={location.pathname === '/resource-browse'} 
-              onClick={() => setIsSidebarOpen(false)} 
-            />
-          </nav>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col h-screen overflow-hidden">
-          {/* Header */}
-          <header className="h-[88px] bg-white border-b border-[#E7E2D6] flex items-center justify-between px-6 lg:px-10 z-10 flex-shrink-0 shadow-sm relative">
-            <div className="flex items-center gap-4 w-full">
-              <button 
-                onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden p-2 -ml-2 rounded-xl text-[#1F4D3A] hover:bg-[#FAF7F0]"
-              >
-                <Icon name="Menu" size={24} />
-              </button>
-              
-              <div className={`hidden md:block max-w-md w-full ml-4 transition-opacity ${currentTrack === 'home' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                <div className="relative">
-                  <Icon name="Search" size={16} className="absolute left-4 top-3 text-gray-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Quick search..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#FAF7F0] border border-[#E7E2D6] rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-[#1F4D3A]/30"
-                  />
-                </div>
+        {currentTrack === 'home' && (
+          <div className="space-y-10">
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+            
+            {/* Last Visited Widget */}
+            {lastVisited && (
+              <div className="bg-[#EFE7D8] text-[#1F4D3A] px-6 py-3 rounded-xl inline-flex items-center gap-3 text-sm font-bold shadow-sm animate-in fade-in slide-in-from-top-4 cursor-pointer hover:bg-[#E7E2D6] transition-colors" onClick={() => startTrack('curriculum')}>
+                <Icon name="History" size={16} />
+                You last studied: {lastVisited.subject}
               </div>
+            )}
+            
+            <HeroWelcomeCard 
+              userName={userData?.name?.split(' ')[0]} 
+              onBrowsePapers={() => startTrack('papers')}
+              onBrowseCurriculum={() => startTrack('curriculum')}
+            />
+            
+            {/* Platform Stats Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <StatsCard 
+                icon="Database" 
+                label="Total Resources" 
+                value={platformStats.total} 
+                onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} 
+              />
+              <StatsCard 
+                icon="FileText" 
+                label="Question Papers" 
+                value={platformStats.papers} 
+                onClick={() => startTrack('papers')} 
+              />
+              <StatsCard 
+                icon="BookOpen" 
+                label="Curriculum Docs" 
+                value={platformStats.curriculum} 
+                onClick={() => startTrack('curriculum')} 
+              />
             </div>
             
-            {/* Avatar Profile Dropdown */}
-            <div className="flex items-center gap-4 flex-shrink-0 relative" ref={dropdownRef}>
-              <div className="hidden sm:block text-right">
-                <p className="text-sm font-bold text-[#1C1C1C] leading-tight">{userData?.name || 'Student'}</p>
-                <p className="text-xs text-[#5C5C5C]">{userData?.course || 'Enrolled'}</p>
-              </div>
-              <button 
-                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="w-12 h-12 rounded-full bg-[#EFE7D8] border-2 border-white shadow-sm flex items-center justify-center text-[#1F4D3A] hover:scale-105 transition-transform"
-              >
-                <Icon name="User" size={20} />
-              </button>
-              
-              {/* Dropdown Menu */}
-              {isProfileDropdownOpen && (
-                <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-[#E7E2D6] rounded-2xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2">
-                  <div className="p-4 border-b border-[#E7E2D6] sm:hidden">
-                    <p className="text-sm font-bold text-[#1C1C1C] truncate">{userData?.name || 'Student'}</p>
-                    <p className="text-xs text-[#5C5C5C] truncate">{userData?.course || 'Enrolled'}</p>
-                  </div>
-                  <div className="p-2 flex flex-col gap-1">
-                    <Link 
-                      to="/profile" 
-                      onClick={() => setIsProfileDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-[#5C5C5C] hover:bg-[#FAF7F0] hover:text-[#1F4D3A] transition-colors"
-                    >
-                      <Icon name="User" size={16} />
-                      View Profile
-                    </Link>
-                    <Link 
-                      to="/settings"
-                      onClick={() => setIsProfileDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-[#5C5C5C] hover:bg-[#FAF7F0] hover:text-[#1F4D3A] transition-colors"
-                    >
-                      <Icon name="Settings" size={16} />
-                      Settings
-                    </Link>
-                    <div className="h-px bg-[#E7E2D6] my-1 mx-2" />
-                    <button 
-                      onClick={() => { logout(); navigate('/login'); }}
-                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-[#5C5C5C] hover:bg-red-50 hover:text-red-600 transition-colors w-full text-left"
-                    >
-                      <Icon name="LogOut" size={16} />
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </header>
-
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-6 lg:p-10 relative">
-            <div className="max-w-6xl mx-auto space-y-10">
-              
-              {getBreadcrumbs()}
-              
-              {currentTrack === 'home' && (
-                <>
-                  <SearchBar value={searchQuery} onChange={setSearchQuery} />
-                  
-                  <HeroWelcomeCard 
-                    userName={userData?.name?.split(' ')[0]} 
-                    onBrowsePapers={() => startTrack('papers')}
-                    onBrowseCurriculum={() => startTrack('curriculum')}
-                  />
-                  
-                  {/* Platform Stats Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <StatsCard 
-                      icon="Database" 
-                      label="Total Resources" 
-                      value={platformStats.total} 
-                      onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} 
-                    />
-                    <StatsCard 
-                      icon="FileText" 
-                      label="Question Papers" 
-                      value={platformStats.papers} 
-                      onClick={() => startTrack('papers')} 
-                    />
-                    <StatsCard 
-                      icon="BookOpen" 
-                      label="Curriculum Docs" 
-                      value={platformStats.curriculum} 
-                      onClick={() => startTrack('curriculum')} 
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left: Recently Added */}
-                    <div className="lg:col-span-2">
-                      <h2 className="text-xl font-bold text-[#1C1C1C] mb-6 font-serif">Recently Added to Library</h2>
-                      <div className="space-y-4">
-                        {recentResources.map(resource => (
-                          <RecentResourceCard key={resource.id} resource={resource} />
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* Right: Recommended */}
-                    <div className="lg:col-span-1">
-                      <h2 className="text-xl font-bold text-[#1C1C1C] mb-6 font-serif">Recommended For You</h2>
-                      <div className="bg-white rounded-[2rem] p-6 border border-[#E7E2D6] shadow-sm">
-                        <div className="w-12 h-12 rounded-full bg-[#EFE7D8] flex items-center justify-center text-[#1F4D3A] mb-4">
-                          <Icon name="Compass" size={24} />
+            {/* Trending This Week */}
+            {recentResources.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-[#1C1C1C] mb-6 font-serif flex items-center gap-2">
+                  <Icon name="TrendingUp" size={20} className="text-[#1F4D3A]" />
+                  Trending This Week
+                </h2>
+                <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar -mx-6 px-6 lg:mx-0 lg:px-0">
+                  {recentResources.slice(0, 4).map(resource => (
+                    <div key={resource.id} className="min-w-[280px] w-[280px] bg-white border border-[#E7E2D6] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-3">
+                      <div className="flex items-start justify-between">
+                        <div className="bg-[#EFE7D8] rounded-xl p-2">
+                          <Icon name="FileText" size={20} className="text-[#1F4D3A]" />
                         </div>
-                        <h3 className="text-base font-bold text-[#1C1C1C] mb-2">Based on your profile</h3>
-                        <p className="text-sm text-[#5C5C5C] mb-4">We noticed you are in {userData?.year || 'Year 1'}. Check out these top resources for your current semester.</p>
-                        <button 
-                          onClick={() => {
-                            setSelectedYear(userData?.year || 'Year 1');
-                            setCurrentTrack('curriculum');
-                          }}
-                          className="w-full text-center bg-[#FAF7F0] hover:bg-[#1F4D3A] text-[#1F4D3A] hover:text-white border border-[#E7E2D6] hover:border-[#1F4D3A] py-2.5 rounded-xl font-bold text-sm transition-colors"
-                        >
-                          View My Curriculum
-                        </button>
+                        <span className="text-xs font-bold text-[#1F4D3A] bg-[#FAF7F0] px-2 py-1 rounded-md">
+                          {Math.floor(Math.random() * 50) + 10} downloads
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-[#1C1C1C] line-clamp-2 leading-snug mb-1">{resource.title}</h3>
+                        <p className="text-xs text-[#5C5C5C] truncate">{resource.subject}</p>
                       </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  ))}
+                </div>
+              </div>
+            )}
 
-              {/* Dynamic Drill Down Tracks */}
-              {currentTrack !== 'home' && renderDrillDown()}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left: Recently Added */}
+              <div className="lg:col-span-2">
+                <h2 className="text-xl font-bold text-[#1C1C1C] mb-6 font-serif">Recently Added to Library</h2>
+                <div className="space-y-4">
+                  {recentResources.map(resource => (
+                    <RecentResourceCard key={resource.id} resource={resource} />
+                  ))}
+                </div>
+              </div>
               
+              {/* Right: Recommended */}
+              <div className="lg:col-span-1">
+                <h2 className="text-xl font-bold text-[#1C1C1C] mb-6 font-serif">Recommended For You</h2>
+                <div className="bg-white rounded-[2rem] p-6 border border-[#E7E2D6] shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-[#EFE7D8] flex items-center justify-center text-[#1F4D3A] mb-4">
+                    <Icon name="Compass" size={24} />
+                  </div>
+                  <h3 className="text-base font-bold text-[#1C1C1C] mb-2">Based on your profile</h3>
+                  <p className="text-sm text-[#5C5C5C] mb-4">We noticed you are in {userData?.year || 'Year 1'}. Check out these top resources for your current semester.</p>
+                  <button 
+                    onClick={() => {
+                      setSelectedYear(userData?.year || 'Year 1');
+                      setCurrentTrack('curriculum');
+                    }}
+                    className="w-full text-center bg-[#FAF7F0] hover:bg-[#1F4D3A] text-[#1F4D3A] hover:text-white border border-[#E7E2D6] hover:border-[#1F4D3A] py-2.5 rounded-xl font-bold text-sm transition-colors"
+                  >
+                    View My Curriculum
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </main>
-      </div>
+        )}
+
+        {/* Dynamic Drill Down Tracks */}
+        {currentTrack !== 'home' && renderDrillDown()}
+      </StudentLayout>
     </AuthenticationGuard>
   );
 };

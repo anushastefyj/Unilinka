@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import Icon from '../../../components/AppIcon';
 import RecentResourceCard from './RecentResourceCard';
 import { supabase } from '../../../lib/supabase';
+import FrequentlyAskedPanel from './FrequentlyAskedPanel';
+import SubjectAISummary from './SubjectAISummary';
 
 const QuestionPaperList = ({ subjects, selectedYear }) => {
   const [expandedSubject, setExpandedSubject] = useState(null);
@@ -16,6 +18,14 @@ const QuestionPaperList = ({ subjects, selectedYear }) => {
     
     setExpandedSubject(subject);
     
+    // Track Last Visited Subject
+    if (subject) {
+      localStorage.setItem('unilinka_last_visited', JSON.stringify({
+        subject: subject,
+        timestamp: Date.now()
+      }));
+    }
+    
     if (!resources[subject]) {
       setLoading(prev => ({ ...prev, [subject]: true }));
       try {
@@ -24,19 +34,13 @@ const QuestionPaperList = ({ subjects, selectedYear }) => {
           .select('*')
           .eq('status', 'approved')
           .eq('subject', subject)
-          // Ideally there would be a resource_category='question_paper' filter here
+          .like('title', '%Paper%') // Basic filter for demo
           .order('created_at', { ascending: false });
           
         if (!error) {
-          // Group by exam year. If no year is specified in the DB, we mock it based on upload date or randomly for demonstration.
-          // In a real scenario, the DB should have an 'exam_year' column.
-          const grouped = data.reduce((acc, r) => {
-            // Mocking exam year extraction since it's not explicitly in the schema provided
-            const yearMatch = r.title.match(/(20\d{2})/);
-            const examYear = yearMatch ? yearMatch[0] : new Date(r.created_at).getFullYear().toString();
-            
-            if (!acc[examYear]) acc[examYear] = [];
-            acc[examYear].push({
+          setResources(prev => ({
+            ...prev,
+            [subject]: data.map(r => ({
               id: r.id,
               title: r.title,
               description: r.description,
@@ -45,13 +49,7 @@ const QuestionPaperList = ({ subjects, selectedYear }) => {
               fileType: r.file_type?.toUpperCase(),
               uploadDate: r.created_at,
               fileUrl: r.file_url,
-            });
-            return acc;
-          }, {});
-
-          setResources(prev => ({
-            ...prev,
-            [subject]: grouped
+            }))
           }));
         }
       } catch (err) {
@@ -74,65 +72,64 @@ const QuestionPaperList = ({ subjects, selectedYear }) => {
     <div className="space-y-4">
       {subjects.map((subject, index) => {
         const isExpanded = expandedSubject === subject;
-        const subjectGroupedResources = resources[subject] || {};
+        const subjectResources = resources[subject] || [];
         const isLoading = loading[subject];
-        
-        const totalPapers = Object.values(subjectGroupedResources).flat().length;
 
         return (
-          <div key={index} className="bg-white border border-[#E7E2D6] rounded-2xl overflow-hidden transition-all duration-300 shadow-sm">
+          <div key={index} className="bg-white border border-[#E7E2D6] rounded-[2rem] overflow-hidden transition-all duration-300 shadow-sm">
             
-            <button 
+            <div 
               onClick={() => toggleSubject(subject)}
-              className="w-full px-6 py-5 flex items-center justify-between hover:bg-[#FAF7F0]/50 transition-colors"
+              className="w-full p-6 sm:px-8 sm:py-6 cursor-pointer hover:bg-[#FAF7F0]/50 transition-colors flex items-center justify-between gap-4"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-[#EFE7D8] flex items-center justify-center text-[#1F4D3A]">
-                  <Icon name="FileText" size={20} />
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-12 h-12 rounded-full bg-[#EFE7D8] flex items-center justify-center text-[#1F4D3A] flex-shrink-0">
+                  <Icon name="FileText" size={24} />
                 </div>
-                <div className="text-left">
-                  <h3 className="text-base font-bold text-[#1C1C1C]">{subject}</h3>
-                  <p className="text-xs text-[#5C5C5C] mt-0.5">
-                    {totalPapers > 0 ? `${totalPapers} papers available` : 'Click to view previous year papers'}
+                <div className="text-left min-w-0">
+                  <h3 className="text-lg font-bold text-[#1C1C1C] truncate pr-2">{subject}</h3>
+                  <p className="text-sm text-[#5C5C5C] mt-0.5">
+                    {subjectResources.length > 0 ? `${subjectResources.length} papers` : 'View papers'}
                   </p>
                 </div>
               </div>
               <div className={`text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                <Icon name="ChevronDown" size={20} />
+                <Icon name="ChevronDown" size={24} />
               </div>
-            </button>
+            </div>
 
             {isExpanded && (
-              <div className="px-6 pb-6 pt-2 border-t border-[#E7E2D6] bg-[#FAF7F0]/30">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin text-[#1F4D3A]">
-                      <Icon name="Loader" size={24} />
-                    </div>
-                  </div>
-                ) : Object.keys(subjectGroupedResources).length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-sm text-[#5C5C5C]">No question papers available for this subject yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6 mt-4">
-                    {Object.entries(subjectGroupedResources)
-                      .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA)) // Sort years descending
-                      .map(([year, papers]) => (
-                      <div key={year}>
-                        <h4 className="text-sm font-bold text-[#1C1C1C] mb-3 flex items-center gap-2">
-                          <Icon name="Calendar" size={16} className="text-[#1F4D3A]" />
-                          {year} Examinations
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {papers.map(paper => (
-                            <RecentResourceCard key={paper.id} resource={paper} />
-                          ))}
-                        </div>
+              <div className="p-6 sm:p-8 border-t border-[#E7E2D6] bg-[#FAF7F0]/30 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column: AI & Analysis */}
+                <div className="lg:col-span-1">
+                  <SubjectAISummary subject={subject} />
+                  <FrequentlyAskedPanel subject={subject} />
+                </div>
+                
+                {/* Right Column: Question Papers List */}
+                <div className="lg:col-span-2">
+                  <h4 className="text-base font-bold text-[#1C1C1C] font-serif mb-4 flex items-center gap-2">
+                    <Icon name="FileText" size={18} className="text-[#1F4D3A]" />
+                    Question Papers
+                  </h4>
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin text-[#1F4D3A]">
+                        <Icon name="Loader" size={24} />
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  ) : subjectResources.length === 0 ? (
+                    <div className="text-center py-8 bg-white rounded-2xl border border-[#E7E2D6]">
+                      <p className="text-sm text-[#5C5C5C]">No question papers available for this subject yet.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                      {subjectResources.map(resource => (
+                        <RecentResourceCard key={resource.id} resource={resource} />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
