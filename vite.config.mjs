@@ -12,10 +12,10 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'vendor-react';
+            if (id.includes('lucide-react')) return 'vendor-lucide';
             if (id.includes('@supabase')) return 'vendor-supabase';
-            if (id.includes('lucide')) return 'vendor-lucide';
-            return 'vendor'; // all other node_modules
+            if (id.includes('react-router-dom') || id.includes('@remix-run')) return 'vendor-router';
+            if (id.includes('react') || id.includes('react-dom')) return 'vendor-react';
           }
         }
       }
