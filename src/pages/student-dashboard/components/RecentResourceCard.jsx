@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import ResourcePreviewModal from '../../../components/ui/ResourcePreviewModal';
 import ReportIssueModal from '../../../components/ui/ReportIssueModal';
@@ -6,6 +6,27 @@ import ReportIssueModal from '../../../components/ui/ReportIssueModal';
 const RecentResourceCard = ({ resource }) => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isCached, setIsCached] = useState(false);
+  
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Mock check if this resource was viewed/downloaded recently
+    const history = JSON.parse(localStorage.getItem('unilinka_downloads') || '[]');
+    if (history.some(h => h.id === resource.id)) {
+      setIsCached(true);
+    }
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [resource.id]);
 
   const getFileIcon = (type) => {
     const icons = {
@@ -71,6 +92,14 @@ const RecentResourceCard = ({ resource }) => {
             <span className="truncate max-w-[120px] sm:max-w-none">{resource.subject}</span>
             <span>•</span>
             <span>{resource.academicYear}</span>
+            {isCached && (
+              <>
+                <span>•</span>
+                <span className="flex items-center text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                  <Icon name="CloudLightning" size={12} className="mr-1" /> Offline
+                </span>
+              </>
+            )}
           </div>
         </div>
         
@@ -82,14 +111,15 @@ const RecentResourceCard = ({ resource }) => {
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button 
               onClick={() => setIsReportOpen(true)}
-              className="w-10 h-10 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors flex items-center justify-center flex-shrink-0"
-              title="Report Issue"
+              disabled={isOffline}
+              className="w-10 h-10 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors flex items-center justify-center flex-shrink-0 disabled:opacity-30 disabled:hover:bg-transparent"
+              title={isOffline ? "Cannot report issue while offline" : "Report Issue"}
             >
               <Icon name="Flag" size={16} />
             </button>
             <button 
               onClick={() => setIsPreviewOpen(true)}
-              disabled={!resource.fileUrl}
+              disabled={!resource.fileUrl && (!isOffline || !isCached)}
               className="w-12 h-10 bg-[#FAF7F0] hover:bg-[#EFE7D8] text-[#1F4D3A] rounded-xl transition-colors border border-[#E7E2D6] flex items-center justify-center flex-shrink-0 disabled:opacity-50"
               title="Preview File"
             >

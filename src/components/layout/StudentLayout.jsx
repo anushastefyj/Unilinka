@@ -25,6 +25,7 @@ const StudentLayout = ({ children, headerContent }) => {
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -35,7 +36,18 @@ const StudentLayout = ({ children, headerContent }) => {
     };
     
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   return (
@@ -162,6 +174,13 @@ const StudentLayout = ({ children, headerContent }) => {
             )}
           </div>
         </header>
+
+        {isOffline && (
+          <div className="bg-amber-100 border-b border-amber-200 text-amber-800 text-sm font-bold px-6 py-2 flex items-center gap-2 z-20 flex-shrink-0 relative">
+            <Icon name="WifiOff" size={16} />
+            You're offline — showing cached resources only. Action requests are queued.
+          </div>
+        )}
 
         {/* Scrollable Page Content */}
         <div className="flex-1 overflow-y-auto p-6 lg:p-10 relative">

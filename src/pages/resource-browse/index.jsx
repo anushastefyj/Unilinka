@@ -22,8 +22,10 @@ const ResourceBrowse = () => {
   const [searchQuery, setSearchQuery] = useState(location.state?.searchQuery || '');
   const [filters, setFilters] = useState({
     academicYear: initialYear,
+    branch: 'All Branches',
+    semester: 'All Semesters',
     subject: initialSubject,
-    fileTypes: [],
+    fileType: 'All Types',
     sortBy: 'recent'
   });
   
@@ -46,7 +48,9 @@ const ResourceBrowse = () => {
           description: r.description || "",
           academicYear: r.academic_year || 'Unknown',
           subject: r.subject,
-          fileType: r.file_type?.toUpperCase(),
+          branch: r.branch || 'CSE', // Mock fallback if not in DB
+          semester: r.semester || 'Semester 1', // Mock fallback if not in DB
+          fileType: r.file_type?.toUpperCase() || 'PDF',
           uploadDate: r.created_at,
           fileUrl: r.file_url,
           
@@ -81,12 +85,26 @@ const ResourceBrowse = () => {
       filtered = filtered.filter(resource => resource.academicYear === filters.academicYear);
     }
 
+    if (filters.branch && filters.branch !== 'All Branches') {
+      filtered = filtered.filter(resource => resource.branch === filters.branch);
+    }
+
+    if (filters.semester && filters.semester !== 'All Semesters') {
+      filtered = filtered.filter(resource => resource.semester === filters.semester);
+    }
+
     if (filters.subject && filters.subject !== 'all') {
       filtered = filtered.filter(resource => resource.subject === filters.subject);
     }
 
-    if (filters.fileTypes && filters.fileTypes.length > 0) {
-      filtered = filtered.filter(resource => filters.fileTypes.includes(resource.fileType));
+    if (filters.fileType && filters.fileType !== 'All Types') {
+      const typeMap = {
+        'PDF': ['PDF'],
+        'Word': ['DOC', 'DOCX'],
+        'PPT': ['PPT', 'PPTX']
+      };
+      const allowed = typeMap[filters.fileType] || [];
+      filtered = filtered.filter(resource => allowed.includes(resource.fileType));
     }
 
     if (filters.sortBy === 'title') {
@@ -103,8 +121,10 @@ const ResourceBrowse = () => {
   const handleClearFilters = () => {
     setFilters({
       academicYear: 'All Years',
+      branch: 'All Branches',
+      semester: 'All Semesters',
       subject: 'all',
-      fileTypes: [],
+      fileType: 'All Types',
       sortBy: 'recent'
     });
     setSearchQuery('');
@@ -174,6 +194,34 @@ const ResourceBrowse = () => {
               </div>
               
               <div>
+                <label className="text-xs font-bold text-[#5C5C5C] uppercase tracking-wider mb-2 block">Branch</label>
+                <select 
+                  value={filters.branch}
+                  onChange={(e) => setFilters({...filters, branch: e.target.value})}
+                  className="w-full bg-[#FAF7F0] border border-[#E7E2D6] rounded-xl py-2 px-3 text-sm focus:outline-none"
+                >
+                  <option>All Branches</option>
+                  <option>CSE</option>
+                  <option>ECE</option>
+                  <option>ME</option>
+                  <option>CE</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#5C5C5C] uppercase tracking-wider mb-2 block">Semester</label>
+                <select 
+                  value={filters.semester}
+                  onChange={(e) => setFilters({...filters, semester: e.target.value})}
+                  className="w-full bg-[#FAF7F0] border border-[#E7E2D6] rounded-xl py-2 px-3 text-sm focus:outline-none"
+                >
+                  <option>All Semesters</option>
+                  <option>Semester 1</option>
+                  <option>Semester 2</option>
+                </select>
+              </div>
+
+              <div>
                 <label className="text-xs font-bold text-[#5C5C5C] uppercase tracking-wider mb-2 block">Subject</label>
                 <select 
                   value={filters.subject}
@@ -185,6 +233,20 @@ const ResourceBrowse = () => {
                       {s.name} ({s.count})
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#5C5C5C] uppercase tracking-wider mb-2 block">File Type</label>
+                <select 
+                  value={filters.fileType}
+                  onChange={(e) => setFilters({...filters, fileType: e.target.value})}
+                  className="w-full bg-[#FAF7F0] border border-[#E7E2D6] rounded-xl py-2 px-3 text-sm focus:outline-none"
+                >
+                  <option>All Types</option>
+                  <option>PDF</option>
+                  <option>Word</option>
+                  <option>PPT</option>
                 </select>
               </div>
             </div>

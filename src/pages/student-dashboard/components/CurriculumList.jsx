@@ -6,13 +6,13 @@ import ReportIssueModal from '../../../components/ui/ReportIssueModal';
 import JSZip from 'jszip';
 import { getSubjectQueryList } from '../../../config/curriculum';
 
-// Mock topics since they aren't in the DB currently
+// Mock topics with difficulty/priority tags
 const getMockTopics = (subject) => [
-  `Introduction to ${subject}`,
-  `Core Principles of ${subject}`,
-  `Advanced Concepts`,
-  `Practical Applications`,
-  `Previous Year Case Studies`
+  { title: `Introduction to ${subject}`, priority: 'Medium' },
+  { title: `Core Principles of ${subject}`, priority: 'High' },
+  { title: `Advanced Concepts`, priority: 'High' },
+  { title: `Practical Applications`, priority: 'Medium' },
+  { title: `Previous Year Case Studies`, priority: 'Low' }
 ];
 
 const CurriculumList = ({ subjects, selectedYear }) => {
@@ -160,7 +160,14 @@ const CurriculumList = ({ subjects, selectedYear }) => {
           
           const topics = getMockTopics(subject);
           const completedTopicsCount = (progress[subject] || []).length;
-          const progressPercentage = Math.round((completedTopicsCount / topics.length) * 100);
+          
+          const totalHighPriority = topics.filter(t => t.priority === 'High').length;
+          const completedHighPriority = (progress[subject] || []).filter(i => topics[i].priority === 'High').length;
+          
+          const syllabusPercentage = topics.length > 0 ? (completedTopicsCount / topics.length) : 0;
+          const highPriorityPercentage = totalHighPriority > 0 ? (completedHighPriority / totalHighPriority) : 0;
+          
+          const examReadinessScore = Math.round(((syllabusPercentage + highPriorityPercentage) / 2) * 100);
 
           return (
             <div key={index} className="bg-white border border-[#E7E2D6] rounded-[2rem] overflow-hidden transition-all duration-300 shadow-sm">
@@ -188,26 +195,33 @@ const CurriculumList = ({ subjects, selectedYear }) => {
                 </div>
                 
                 {/* Progress Bar Mini */}
-                <div className="pl-16 pr-2 sm:pr-8">
+                <div className="pl-16 pr-2 sm:pr-8 group/progress relative">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-[#5C5C5C]">Syllabus Coverage</span>
-                    <span className="text-xs font-bold text-[#1F4D3A]">{completedTopicsCount}/{topics.length} Covered</span>
+                    <span className="text-xs font-bold text-[#5C5C5C]">Exam Readiness Score</span>
+                    <span className="text-xs font-bold text-[#1F4D3A]">{examReadinessScore}%</span>
                   </div>
                   <div className="w-full h-2 bg-[#E7E2D6] rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-[#1F4D3A] transition-all duration-500 rounded-full"
-                      style={{ width: `${progressPercentage}%` }}
+                      style={{ width: `${examReadinessScore}%` }}
                     />
+                  </div>
+                  
+                  {/* Tooltip */}
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 opacity-0 group-hover/progress:opacity-100 transition-opacity pointer-events-none z-10 w-max bg-gray-900 text-white text-xs rounded-lg py-2 px-3 shadow-lg">
+                    <p className="font-medium mb-1 border-b border-gray-700 pb-1">Readiness Breakdown</p>
+                    <p>{completedTopicsCount}/{topics.length} topics covered</p>
+                    <p className="text-emerald-400">{completedHighPriority}/{totalHighPriority} High-priority topics covered</p>
                   </div>
                 </div>
               </div>
 
               {/* Expanded Content */}
               {isExpanded && (
-                <div className="border-t border-[#E7E2D6] bg-[#FAF7F0]/30 grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-[#E7E2D6]">
+                <div className="border-t border-[#E7E2D6] bg-[#FAF7F0]/30 grid grid-cols-1 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-[#E7E2D6]">
                   
                   {/* Syllabus Checklist */}
-                  <div className="p-6 sm:p-8 lg:col-span-1 bg-white/50">
+                  <div className="p-6 sm:p-8 lg:col-span-2 bg-white/50">
                     <h4 className="text-base font-bold text-[#1C1C1C] font-serif mb-4 flex items-center gap-2">
                       <Icon name="CheckSquare" size={18} className="text-[#1F4D3A]" />
                       Syllabus Topics
@@ -218,18 +232,26 @@ const CurriculumList = ({ subjects, selectedYear }) => {
                         return (
                           <div 
                             key={i} 
-                            className="flex items-start gap-3 cursor-pointer group"
+                            className="flex items-start justify-between cursor-pointer group"
                             onClick={() => toggleTopic(subject, i)}
                           >
-                            <div className={`w-5 h-5 rounded border mt-0.5 flex items-center justify-center flex-shrink-0 transition-colors ${
-                              isChecked ? 'bg-[#1F4D3A] border-[#1F4D3A] text-white' : 'border-[#E7E2D6] group-hover:border-[#1F4D3A]'
-                            }`}>
-                              {isChecked && <Icon name="Check" size={12} strokeWidth={3} />}
+                            <div className="flex items-start gap-3">
+                              <div className={`w-5 h-5 rounded border mt-0.5 flex items-center justify-center flex-shrink-0 transition-colors ${
+                                isChecked ? 'bg-[#1F4D3A] border-[#1F4D3A] text-white' : 'border-[#E7E2D6] group-hover:border-[#1F4D3A]'
+                              }`}>
+                                {isChecked && <Icon name="Check" size={12} strokeWidth={3} />}
+                              </div>
+                              <span className={`text-sm transition-colors leading-snug select-none ${
+                                isChecked ? 'text-[#5C5C5C] line-through opacity-70' : 'text-[#1C1C1C] group-hover:text-[#1F4D3A]'
+                              }`}>
+                                {topic.title}
+                              </span>
                             </div>
-                            <span className={`text-sm transition-colors leading-snug select-none ${
-                              isChecked ? 'text-[#5C5C5C] line-through opacity-70' : 'text-[#1C1C1C] group-hover:text-[#1F4D3A]'
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ml-4 flex-shrink-0 ${
+                              topic.priority === 'High' ? 'bg-red-50 text-red-600' :
+                              topic.priority === 'Medium' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500'
                             }`}>
-                              {topic}
+                              {topic.priority}
                             </span>
                           </div>
                         );
@@ -238,26 +260,29 @@ const CurriculumList = ({ subjects, selectedYear }) => {
                   </div>
 
                   {/* Resources */}
-                  <div className="p-6 sm:p-8 lg:col-span-2">
+                  <div className="p-6 sm:p-8 lg:col-span-3">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-base font-bold text-[#1C1C1C] font-serif flex items-center gap-2">
                         <Icon name="FileText" size={18} className="text-[#1F4D3A]" />
                         Resources
                       </h4>
-                      {subjectResources.length > 0 && (
-                        <button
-                          onClick={() => handleBulkDownload(subject, subjectResources)}
-                          disabled={isZipping[subject]}
-                          className="text-sm font-bold bg-[#1F4D3A] text-white hover:bg-[#2E6B4F] rounded-xl px-4 py-2 transition-colors flex items-center gap-2 disabled:opacity-50"
-                        >
-                          {isZipping[subject] ? (
-                            <Icon name="Loader" size={16} className="animate-spin" />
-                          ) : (
-                            <Icon name="DownloadCloud" size={16} />
-                          )}
-                          Download All • {subjectResources.length} files
-                        </button>
-                      )}
+                      {subjectResources.length > 1 && (() => {
+                        const estimatedSizeMB = (subjectResources.length * 1.8).toFixed(1);
+                        return (
+                          <button
+                            onClick={() => handleBulkDownload(subject, subjectResources)}
+                            disabled={isZipping[subject]}
+                            className="text-sm font-bold bg-[#1F4D3A] text-white hover:bg-[#2E6B4F] rounded-xl px-4 py-2 transition-colors flex items-center gap-2 disabled:opacity-50"
+                          >
+                            {isZipping[subject] ? (
+                              <Icon name="Loader" size={16} className="animate-spin" />
+                            ) : (
+                              <Icon name="DownloadCloud" size={16} />
+                            )}
+                            Download All • {subjectResources.length} files • {estimatedSizeMB} MB
+                          </button>
+                        );
+                      })()}
                     </div>
                     {isLoading ? (
                       <div className="flex items-center justify-center py-8">

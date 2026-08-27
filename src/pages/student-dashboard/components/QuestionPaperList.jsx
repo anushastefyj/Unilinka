@@ -151,34 +151,37 @@ const QuestionPaperList = ({ subjects, selectedYear }) => {
               </div>
 
               {isExpanded && (
-                <div className="p-6 sm:p-8 border-t border-[#E7E2D6] bg-[#FAF7F0]/30 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="p-6 sm:p-8 border-t border-[#E7E2D6] bg-[#FAF7F0]/30 grid grid-cols-1 lg:grid-cols-5 gap-8">
                   {/* Left Column: AI & Analysis */}
-                  <div className="lg:col-span-1">
+                  <div className="lg:col-span-2">
                     <SubjectAISummary subject={subject} />
                     <FrequentlyAskedPanel subject={subject} />
                   </div>
                   
                   {/* Right Column: Question Papers List */}
-                  <div className="lg:col-span-2">
+                  <div className="lg:col-span-3">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-base font-bold text-[#1C1C1C] font-serif flex items-center gap-2">
                         <Icon name="FileText" size={18} className="text-[#1F4D3A]" />
                         Question Papers
                       </h4>
-                      {subjectResources.length > 0 && (
-                        <button
-                          onClick={() => handleBulkDownload(subject, subjectResources)}
-                          disabled={isZipping[subject]}
-                          className="text-sm font-bold bg-[#1F4D3A] text-white hover:bg-[#2E6B4F] rounded-xl px-4 py-2 transition-colors flex items-center gap-2 disabled:opacity-50"
-                        >
-                          {isZipping[subject] ? (
-                            <Icon name="Loader" size={16} className="animate-spin" />
-                          ) : (
-                            <Icon name="DownloadCloud" size={16} />
-                          )}
-                          Download All • {subjectResources.length} files
-                        </button>
-                      )}
+                      {subjectResources.length > 1 && (() => {
+                        const estimatedSizeMB = (subjectResources.length * 1.8).toFixed(1);
+                        return (
+                          <button
+                            onClick={() => handleBulkDownload(subject, subjectResources)}
+                            disabled={isZipping[subject]}
+                            className="text-sm font-bold bg-[#1F4D3A] text-white hover:bg-[#2E6B4F] rounded-xl px-4 py-2 transition-colors flex items-center gap-2 disabled:opacity-50"
+                          >
+                            {isZipping[subject] ? (
+                              <Icon name="Loader" size={16} className="animate-spin" />
+                            ) : (
+                              <Icon name="DownloadCloud" size={16} />
+                            )}
+                            Download All • {subjectResources.length} files • {estimatedSizeMB} MB
+                          </button>
+                        );
+                      })()}
                     </div>
                     {isLoading ? (
                       <div className="flex items-center justify-center py-8">

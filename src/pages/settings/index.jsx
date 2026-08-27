@@ -30,8 +30,6 @@ const SettingsPage = () => {
   // UI State for toggles/dropdowns
   const [notifyBranch, setNotifyBranch] = useState(true);
   const [notifyPapers, setNotifyPapers] = useState(true);
-  const [landingPage, setLandingPage] = useState('Dashboard Home');
-
   return (
     <AuthenticationGuard requiredRoles={['student']}>
       <Helmet>
@@ -101,31 +99,6 @@ const SettingsPage = () => {
             </div>
           </section>
 
-          {/* Preferences Section */}
-          <section className="bg-white rounded-[2rem] p-6 sm:p-8 border border-[#E7E2D6] shadow-sm">
-            <h2 className="text-lg font-bold text-[#1C1C1C] mb-6 flex items-center gap-2">
-              <Icon name="Sliders" size={20} className="text-[#1F4D3A]" />
-              Preferences
-            </h2>
-            
-            <div>
-              <label className="block text-sm font-bold text-[#1C1C1C] mb-2">Default Landing Page</label>
-              <p className="text-xs text-[#5C5C5C] mb-3">Choose which screen you see first when you log in.</p>
-              
-              <div className="relative max-w-sm">
-                <select 
-                  value={landingPage}
-                  onChange={(e) => setLandingPage(e.target.value)}
-                  className="w-full bg-white border border-[#E7E2D6] rounded-xl py-3 pl-4 pr-10 text-sm font-medium text-[#1C1C1C] focus:outline-none focus:border-[#1F4D3A]/50 appearance-none shadow-sm cursor-pointer hover:border-[#1F4D3A]/30 transition-colors"
-                >
-                  <option>Dashboard Home</option>
-                  <option>Question Papers</option>
-                  <option>Curriculum</option>
-                </select>
-                <Icon name="ChevronDown" size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              </div>
-            </div>
-          </section>
 
         </div>
       </StudentLayout>

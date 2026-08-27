@@ -41,6 +41,7 @@ const StudentDashboard = () => {
   // Platform Stats & Resources
   const [platformStats, setPlatformStats] = useState({ total: 0, papers: 0, curriculum: 0 });
   const [recentResources, setRecentResources] = useState([]);
+  const [progress, setProgress] = useState({});
 
   useEffect(() => {
     if (location.pathname === '/question-papers') setCurrentTrack('papers');
@@ -57,6 +58,16 @@ const StudentDashboard = () => {
     if (storedLastVisited) {
       try {
         setLastVisited(JSON.parse(storedLastVisited));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    
+    // Check progress for readiness score
+    const storedProgress = localStorage.getItem('unilinka_progress');
+    if (storedProgress) {
+      try {
+        setProgress(JSON.parse(storedProgress));
       } catch (e) {
         console.error(e);
       }
@@ -133,6 +144,24 @@ const StudentDashboard = () => {
       return HIERARCHICAL_CURRICULUM[selectedYear]?.[selectedBranch]?.[selectedSemester] || [];
     }
     return [];
+  };
+
+  const getExamReadinessScore = (subject) => {
+    const topics = [
+      { title: `Introduction to ${subject}`, priority: 'Medium' },
+      { title: `Core Principles of ${subject}`, priority: 'High' },
+      { title: `Advanced Concepts`, priority: 'High' },
+      { title: `Practical Applications`, priority: 'Medium' },
+      { title: `Previous Year Case Studies`, priority: 'Low' }
+    ];
+    const completedTopicsCount = (progress[subject] || []).length;
+    const totalHighPriority = topics.filter(t => t.priority === 'High').length;
+    const completedHighPriority = (progress[subject] || []).filter(i => topics[i].priority === 'High').length;
+    
+    const syllabusPercentage = topics.length > 0 ? (completedTopicsCount / topics.length) : 0;
+    const highPriorityPercentage = totalHighPriority > 0 ? (completedHighPriority / totalHighPriority) : 0;
+    
+    return Math.round(((syllabusPercentage + highPriorityPercentage) / 2) * 100);
   };
 
   const renderDrillDown = () => {
@@ -298,11 +327,35 @@ const StudentDashboard = () => {
           <div className="space-y-10">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
             
-            {/* Last Visited Widget */}
+            {/* Last Visited Widget & Readiness Score */}
             {lastVisited && (
-              <div className="bg-[#EFE7D8] text-[#1F4D3A] px-6 py-3 rounded-xl inline-flex items-center gap-3 text-sm font-bold shadow-sm animate-in fade-in slide-in-from-top-4 cursor-pointer hover:bg-[#E7E2D6] transition-colors" onClick={() => startTrack('curriculum')}>
-                <Icon name="History" size={16} />
-                You last studied: {lastVisited.subject}
+              <div className="bg-[#EFE7D8] text-[#1F4D3A] p-6 rounded-xl shadow-sm animate-in fade-in slide-in-from-top-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-bold text-lg mb-1 flex items-center gap-2">
+                      <Icon name="History" size={20} />
+                      Current Focus: {lastVisited.subject}
+                    </h3>
+                    <p className="text-sm opacity-80">Pick up where you left off in your curriculum.</p>
+                  </div>
+                  <div className="bg-white/50 px-4 py-3 rounded-lg flex items-center gap-4 min-w-[200px]">
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-xs font-bold">Exam Readiness</span>
+                        <span className="text-xs font-bold">{getExamReadinessScore(lastVisited.subject)}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-[#E7E2D6] rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-[#1F4D3A] transition-all duration-500 rounded-full"
+                          style={{ width: `${getExamReadinessScore(lastVisited.subject)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <button onClick={() => startTrack('curriculum')} className="p-2 bg-[#1F4D3A] text-white rounded-md hover:bg-[#153a2b] transition-colors">
+                      <Icon name="ChevronRight" size={16} />
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
             
@@ -334,33 +387,48 @@ const StudentDashboard = () => {
               />
             </div>
             
-            {/* Trending This Week */}
-            {recentResources.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold text-[#1C1C1C] mb-6 font-serif flex items-center gap-2">
-                  <Icon name="TrendingUp" size={20} className="text-[#1F4D3A]" />
-                  Trending This Week
-                </h2>
-                <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar -mx-6 px-6 lg:mx-0 lg:px-0">
-                  {recentResources.slice(0, 4).map(resource => (
-                    <div key={resource.id} className="min-w-[280px] w-[280px] bg-white border border-[#E7E2D6] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-3">
-                      <div className="flex items-start justify-between">
-                        <div className="bg-[#EFE7D8] rounded-xl p-2">
-                          <Icon name="FileText" size={20} className="text-[#1F4D3A]" />
+            {/* Trending Section */}
+            {recentResources.length > 0 && (() => {
+              // Mock sorting by downloads
+              const trendingItems = [...recentResources]
+                .map(r => ({ ...r, mockDownloads: ((r.id?.toString().charCodeAt(0) || 1) * 17) % 200 + 20 }))
+                .sort((a, b) => b.mockDownloads - a.mockDownloads)
+                .slice(0, 5);
+              
+              const isWeeklySparse = trendingItems.length < 3;
+              const trendingTitle = isWeeklySparse ? "Trending This Month" : "Trending This Week";
+
+              return (
+                <div>
+                  <h2 className="text-xl font-bold text-[#1C1C1C] mb-6 font-serif flex items-center gap-2">
+                    <Icon name="TrendingUp" size={20} className="text-[#1F4D3A]" />
+                    {trendingTitle}
+                  </h2>
+                  <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar -mx-6 px-6 lg:mx-0 lg:px-0">
+                    {trendingItems.map(resource => (
+                      <div key={resource.id} className="min-w-[300px] w-[300px] bg-white border border-[#E7E2D6] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 justify-between">
+                        <div>
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="bg-[#EFE7D8] rounded-xl p-2">
+                              <Icon name="FileText" size={20} className="text-[#1F4D3A]" />
+                            </div>
+                            <span className="text-xs font-bold text-[#1F4D3A] bg-[#FAF7F0] px-2 py-1 rounded-md border border-[#E7E2D6]">
+                              {resource.mockDownloads} downloads
+                            </span>
+                          </div>
+                          <h3 className="text-sm font-bold text-[#1C1C1C] line-clamp-2 leading-snug mb-2" title={resource.title}>{resource.title}</h3>
                         </div>
-                        <span className="text-xs font-bold text-[#1F4D3A] bg-[#FAF7F0] px-2 py-1 rounded-md">
-                          {Math.floor(Math.random() * 50) + 10} downloads
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-[#5C5C5C] uppercase tracking-wider">
+                          <span className="bg-[#FAF7F0] px-2 py-1 rounded border border-[#E7E2D6] truncate max-w-[100px]">{resource.subject}</span>
+                          <span className="bg-[#FAF7F0] px-2 py-1 rounded border border-[#E7E2D6]">{resource.academicYear}</span>
+                          <span className="bg-[#FAF7F0] px-2 py-1 rounded border border-[#E7E2D6]">CSE</span>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-[#1C1C1C] line-clamp-2 leading-snug mb-1">{resource.title}</h3>
-                        <p className="text-xs text-[#5C5C5C] truncate">{resource.subject}</p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left: Recently Added */}

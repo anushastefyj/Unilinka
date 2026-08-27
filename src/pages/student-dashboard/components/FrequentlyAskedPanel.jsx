@@ -33,16 +33,16 @@ const FrequentlyAskedPanel = ({ subject }) => {
         {topics.map((item, idx) => {
           const tag = getTagStyle(item.count);
           return (
-            <div key={idx} className="flex items-center justify-between bg-white border border-[#E7E2D6] p-3 rounded-xl hover:border-[#1F4D3A]/30 transition-colors">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-[#1F4D3A] bg-[#EFE7D8] w-6 h-6 flex items-center justify-center rounded-md">
+            <div key={idx} className="flex flex-col justify-between bg-white border border-[#E7E2D6] p-4 rounded-xl hover:border-[#1F4D3A]/30 transition-colors min-h-[90px]">
+              <div className="flex items-start gap-3 mb-3">
+                <span className="text-xs font-bold text-[#1F4D3A] bg-[#EFE7D8] w-6 h-6 flex items-center justify-center rounded-md flex-shrink-0 mt-0.5">
                   {idx + 1}
                 </span>
-                <span className="text-sm font-medium text-[#1C1C1C]">{item.topic}</span>
+                <span className="text-sm font-medium text-[#1C1C1C] leading-[1.4] line-clamp-2 w-full">{item.topic}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="hidden sm:inline text-xs text-[#5C5C5C]">
-                  {item.count} {item.count === 1 ? 'year' : 'years'}
+              <div className="flex items-center justify-end gap-3 pl-9">
+                <span className="text-xs text-[#5C5C5C]">
+                  Appeared in {item.count} {item.count === 1 ? 'year' : 'years'}
                 </span>
                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border ${tag.color}`}>
                   {tag.label} Weight

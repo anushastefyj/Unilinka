@@ -12,6 +12,18 @@ import StudentRegistration from './pages/student-registration';
 import ProfilePage from './pages/profile';
 import SettingsPage from './pages/settings';
 
+// Admin imports
+import AdminLayout from './pages/admin/layout/AdminLayout';
+import AdminDashboard from './pages/admin/dashboard/AdminDashboard';
+import TaxonomyManager from './pages/admin/taxonomy/TaxonomyManager';
+import ResourceManager from './pages/admin/resources/ResourceManager';
+import ReportedIssues from './pages/admin/issues/ReportedIssues';
+import AnalyticsDashboard from './pages/admin/analytics/AnalyticsDashboard';
+import SubjectMergeManager from './pages/admin/merge/SubjectMergeManager';
+import ContentGapDashboard from './pages/admin/analytics/ContentGapDashboard';
+import UserManager from './pages/admin/users/UserManager';
+import NotificationManager from './pages/admin/notifications/NotificationManager';
+
 const Routes = () => {
   return (
     <BrowserRouter>
@@ -35,6 +47,20 @@ const Routes = () => {
         <Route path="/settings" element={<SettingsPage />} />
         
         <Route path="/student-registration" element={<StudentRegistration />} />
+
+        {/* Admin Panel Routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="taxonomy" element={<TaxonomyManager />} />
+          <Route path="resources" element={<ResourceManager />} />
+          <Route path="issues" element={<ReportedIssues />} />
+          <Route path="analytics" element={<AnalyticsDashboard />} />
+          <Route path="analytics/gaps" element={<ContentGapDashboard />} />
+          <Route path="merge" element={<SubjectMergeManager />} />
+          <Route path="notifications" element={<NotificationManager />} />
+          <Route path="users" element={<UserManager />} />
+        </Route>
+
         <Route path="*" element={<NotFound />} />
       </RouterRoutes>
       </ErrorBoundary>
