@@ -24,6 +24,9 @@ export default defineConfig({
         short_name: 'Unilinka',
         description: 'Student learning platform',
         theme_color: '#1F4D3A',
+      },
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5000000 // 5 MB
       }
     })
   ],

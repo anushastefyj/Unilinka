@@ -165,23 +165,20 @@ const QuestionPaperList = ({ subjects, selectedYear }) => {
                         <Icon name="FileText" size={18} className="text-[#1F4D3A]" />
                         Question Papers
                       </h4>
-                      {subjectResources.length > 1 && (() => {
-                        const estimatedSizeMB = (subjectResources.length * 1.8).toFixed(1);
-                        return (
-                          <button
-                            onClick={() => handleBulkDownload(subject, subjectResources)}
-                            disabled={isZipping[subject]}
-                            className="text-sm font-bold bg-[#1F4D3A] text-white hover:bg-[#2E6B4F] rounded-xl px-4 py-2 transition-colors flex items-center gap-2 disabled:opacity-50"
-                          >
-                            {isZipping[subject] ? (
-                              <Icon name="Loader" size={16} className="animate-spin" />
-                            ) : (
-                              <Icon name="DownloadCloud" size={16} />
-                            )}
-                            Download All • {subjectResources.length} files • {estimatedSizeMB} MB
-                          </button>
-                        );
-                      })()}
+                      {subjectResources.length > 1 && (
+                        <button
+                          onClick={() => handleBulkDownload(subject, subjectResources)}
+                          disabled={isZipping[subject]}
+                          className="text-sm font-bold bg-[#1F4D3A] text-white hover:bg-[#2E6B4F] rounded-xl px-4 py-2 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {isZipping[subject] ? (
+                            <Icon name="Loader" size={16} className="animate-spin" />
+                          ) : (
+                            <Icon name="DownloadCloud" size={16} />
+                          )}
+                          Download All • {subjectResources.length} files • {(subjectResources.length * 1.8).toFixed(1)} MB
+                        </button>
+                      )}
                     </div>
                     {isLoading ? (
                       <div className="flex items-center justify-center py-8">

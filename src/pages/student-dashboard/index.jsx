@@ -314,6 +314,13 @@ const StudentDashboard = () => {
     </div>
   );
 
+  const trendingItems = [...recentResources]
+    .map(r => ({ ...r, mockDownloads: ((r.id?.toString().charCodeAt(0) || 1) * 17) % 200 + 20 }))
+    .sort((a, b) => b.mockDownloads - a.mockDownloads)
+    .slice(0, 5);
+  const isWeeklySparse = trendingItems.length < 3;
+  const trendingTitle = isWeeklySparse ? "Trending This Month" : "Trending This Week";
+
   return (
     <AuthenticationGuard requiredRoles={['student']}>
       <Helmet>
@@ -388,47 +395,36 @@ const StudentDashboard = () => {
             </div>
             
             {/* Trending Section */}
-            {recentResources.length > 0 && (() => {
-              // Mock sorting by downloads
-              const trendingItems = [...recentResources]
-                .map(r => ({ ...r, mockDownloads: ((r.id?.toString().charCodeAt(0) || 1) * 17) % 200 + 20 }))
-                .sort((a, b) => b.mockDownloads - a.mockDownloads)
-                .slice(0, 5);
-              
-              const isWeeklySparse = trendingItems.length < 3;
-              const trendingTitle = isWeeklySparse ? "Trending This Month" : "Trending This Week";
-
-              return (
-                <div>
-                  <h2 className="text-xl font-bold text-[#1C1C1C] mb-6 font-serif flex items-center gap-2">
-                    <Icon name="TrendingUp" size={20} className="text-[#1F4D3A]" />
-                    {trendingTitle}
-                  </h2>
-                  <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar -mx-6 px-6 lg:mx-0 lg:px-0">
-                    {trendingItems.map(resource => (
-                      <div key={resource.id} className="min-w-[300px] w-[300px] bg-white border border-[#E7E2D6] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 justify-between">
-                        <div>
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="bg-[#EFE7D8] rounded-xl p-2">
-                              <Icon name="FileText" size={20} className="text-[#1F4D3A]" />
-                            </div>
-                            <span className="text-xs font-bold text-[#1F4D3A] bg-[#FAF7F0] px-2 py-1 rounded-md border border-[#E7E2D6]">
-                              {resource.mockDownloads} downloads
-                            </span>
+            {trendingItems.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-[#1C1C1C] mb-6 font-serif flex items-center gap-2">
+                  <Icon name="TrendingUp" size={20} className="text-[#1F4D3A]" />
+                  {trendingTitle}
+                </h2>
+                <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar -mx-6 px-6 lg:mx-0 lg:px-0">
+                  {trendingItems.map(resource => (
+                    <div key={resource.id} className="min-w-[300px] w-[300px] bg-white border border-[#E7E2D6] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-3 justify-between">
+                      <div>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="bg-[#EFE7D8] rounded-xl p-2">
+                            <Icon name="FileText" size={20} className="text-[#1F4D3A]" />
                           </div>
-                          <h3 className="text-sm font-bold text-[#1C1C1C] line-clamp-2 leading-snug mb-2" title={resource.title}>{resource.title}</h3>
+                          <span className="text-xs font-bold text-[#1F4D3A] bg-[#FAF7F0] px-2 py-1 rounded-md border border-[#E7E2D6]">
+                            {resource.mockDownloads} downloads
+                          </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-[#5C5C5C] uppercase tracking-wider">
-                          <span className="bg-[#FAF7F0] px-2 py-1 rounded border border-[#E7E2D6] truncate max-w-[100px]">{resource.subject}</span>
-                          <span className="bg-[#FAF7F0] px-2 py-1 rounded border border-[#E7E2D6]">{resource.academicYear}</span>
-                          <span className="bg-[#FAF7F0] px-2 py-1 rounded border border-[#E7E2D6]">CSE</span>
-                        </div>
+                        <h3 className="text-sm font-bold text-[#1C1C1C] line-clamp-2 leading-snug mb-2" title={resource.title}>{resource.title}</h3>
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-[#5C5C5C] uppercase tracking-wider">
+                        <span className="bg-[#FAF7F0] px-2 py-1 rounded border border-[#E7E2D6] truncate max-w-[100px]">{resource.subject}</span>
+                        <span className="bg-[#FAF7F0] px-2 py-1 rounded border border-[#E7E2D6]">{resource.academicYear}</span>
+                        <span className="bg-[#FAF7F0] px-2 py-1 rounded border border-[#E7E2D6]">CSE</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              );
-            })()}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left: Recently Added */}
