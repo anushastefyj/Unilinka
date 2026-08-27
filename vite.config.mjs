@@ -11,6 +11,18 @@ export default defineConfig({
   build: {
     outDir: "build",
     chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react')) return 'vendor-react';
+            if (id.includes('@supabase')) return 'vendor-supabase';
+            if (id.includes('lucide')) return 'vendor-lucide';
+            return 'vendor'; // all other node_modules
+          }
+        }
+      }
+    }
   },
   plugins: [
     tsconfigPaths(), 
